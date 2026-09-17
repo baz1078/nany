@@ -1,0 +1,507 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nany</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F5F7F8; --surface:#FFFFFF; --surface-2:#EDF1F3;
+    --ink:#16233D; --ink-muted:#51647F; --ink-faint:#7C8CA3; --border:#DBE2E8;
+    --accent:#0D9488; --accent-ink:#0B4F48; --accent-bg:#CCF3EE;
+    --sev-high:#B93A22; --sev-high-bg:#FBE5E0; --sev-high-bd:#EFB9A8;
+    --sev-medium:#96660A; --sev-medium-bg:#FBEDD3; --sev-medium-bd:#EACB88;
+    --sev-low:#3E6096; --sev-low-bg:#E6EDF6; --sev-low-bd:#B9CBE6;
+    --good:#2E7D4F; --good-bg:#E1F1E6; --good-bd:#AED9BE;
+    --danger:#B93A22; --danger-bg:#FBE5E0;
+    --shadow: 0 1px 2px rgba(22,35,61,0.06), 0 8px 24px -12px rgba(22,35,61,0.12);
+    --font-display:'Figtree', -apple-system, 'Segoe UI', sans-serif;
+    --font-body:'Inter', -apple-system, 'Segoe UI', sans-serif;
+    --font-mono:'Inter', -apple-system, 'Segoe UI', sans-serif;
+  }
+  /* Always light — inspectors read this outdoors on a phone; a dark theme
+     that follows system preference was harder to read in daylight. */
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font-family:var(--font-body);line-height:1.5;-webkit-font-smoothing:antialiased;}
+  a{color:inherit;}
+  ::selection{background:var(--accent-bg);color:var(--accent-ink);}
+  .wrap{max-width:920px;margin:0 auto;padding:28px 20px 80px;}
+
+  .topbar{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:22px;}
+  .brand{display:flex;align-items:baseline;gap:12px;}
+  .brand h1{font-family:var(--font-display);font-weight:800;font-size:2.6rem;letter-spacing:0.01em;margin:0;line-height:0.9;text-transform:uppercase;}
+  .brand h1 span{background:linear-gradient(transparent 62%, var(--accent-bg) 62%);}
+  .print-only{display:none;}
+  .brand .tag{font-family:var(--font-mono);font-size:0.72rem;color:var(--ink-faint);text-transform:uppercase;letter-spacing:0.08em;border:1px solid var(--border);border-radius:3px;padding:2px 6px;white-space:nowrap;}
+  .subtitle{font-size:0.88rem;color:var(--ink-muted);margin:4px 0 0;}
+
+  .view-toggle{display:inline-flex;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:3px;gap:2px;}
+  .view-toggle button{font-family:var(--font-body);font-weight:600;font-size:0.82rem;border:none;background:transparent;color:var(--ink-muted);padding:7px 14px;border-radius:6px;cursor:pointer;transition:background .15s ease, color .15s ease;}
+  .view-toggle button.active{background:var(--surface);color:var(--ink);box-shadow:var(--shadow);}
+  .view-toggle button:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
+
+  .topbar-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .pdf-btn{
+    font-family:var(--font-body);font-weight:600;font-size:0.82rem;
+    background:transparent;color:var(--ink-muted);
+    border:1px solid var(--border);border-radius:8px;
+    padding:8px 14px;cursor:pointer;transition:border-color .15s ease, color .15s ease;
+  }
+  .pdf-btn:hover{border-color:var(--accent);color:var(--accent-ink);}
+  .pdf-btn[hidden]{display:none;}
+
+  /* ---- run panel ---- */
+  .run-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:22px;box-shadow:var(--shadow);margin-bottom:18px;}
+  .run-card label{font-family:var(--font-mono);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--ink-faint);display:block;margin-bottom:8px;}
+  .run-row{display:flex;gap:10px;flex-wrap:wrap;}
+  .run-row input[type=text]{
+    flex:1;min-width:240px;
+    font-family:var(--font-mono);font-size:0.92rem;
+    background:var(--surface-2);border:1px solid var(--border);border-radius:8px;
+    color:var(--ink);padding:12px 14px;
+  }
+  .run-row input[type=text]:focus{outline:2px solid var(--accent);outline-offset:0;border-color:var(--accent);}
+  .run-row button{
+    font-family:var(--font-body);font-weight:700;font-size:0.92rem;
+    background:var(--accent);color:#1a1204;border:none;border-radius:8px;
+    padding:12px 22px;cursor:pointer;white-space:nowrap;
+  }
+  .run-row button:disabled{opacity:0.6;cursor:default;}
+  .run-status{margin-top:12px;font-size:0.85rem;color:var(--ink-muted);display:none;align-items:center;gap:8px;}
+  .run-status.visible{display:flex;}
+  .spinner{width:14px;height:14px;border-radius:50%;border:2px solid var(--border);border-top-color:var(--accent);animation:spin .7s linear infinite;flex:none;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .run-error{margin-top:12px;font-size:0.85rem;color:var(--danger);background:var(--danger-bg);border-radius:8px;padding:10px 12px;display:none;}
+  .run-error.visible{display:block;}
+
+  .results{display:none;}
+  .results.visible{display:block;}
+
+  .meta-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px 22px;box-shadow:var(--shadow);margin-bottom:18px;}
+  .meta-top{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:flex-start;}
+  .meta-address{font-family:var(--font-mono);font-weight:500;font-size:1.05rem;color:var(--ink);}
+  .meta-sub{font-size:0.82rem;color:var(--ink-muted);margin-top:4px;display:flex;gap:14px;flex-wrap:wrap;}
+  .meta-sub b{color:var(--ink);font-weight:600;}
+  .meta-source{font-family:var(--font-mono);font-size:0.74rem;color:var(--ink-faint);text-decoration:none;border:1px solid var(--border);border-radius:6px;padding:6px 10px;white-space:nowrap;}
+  .meta-source:hover{border-color:var(--accent);color:var(--accent-ink);}
+  .meta-assessment{margin-top:14px;padding-top:14px;border-top:1px dashed var(--border);font-size:0.92rem;color:var(--ink-muted);}
+
+  .chips{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;}
+  .chip{display:flex;align-items:baseline;gap:7px;border:1px solid var(--border);border-radius:9px;padding:8px 14px;cursor:pointer;background:var(--surface-2);transition:transform .1s ease, box-shadow .1s ease;user-select:none;}
+  .chip:hover{transform:translateY(-1px);box-shadow:var(--shadow);}
+  .chip .n{font-family:var(--font-display);font-weight:800;font-size:1.5rem;line-height:1;}
+  .chip .l{font-size:0.72rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--ink-muted);font-weight:600;}
+  .chip[data-sev="high"] .n{color:var(--sev-high);}
+  .chip[data-sev="medium"] .n{color:var(--sev-medium);}
+  .chip[data-sev="low"] .n{color:var(--sev-low);}
+  .chip[data-sev="all"] .n{color:var(--ink);}
+  .chip.active{background:var(--surface);border-color:var(--ink-faint);box-shadow:var(--shadow);}
+  .chip.active[data-sev="high"]{border-color:var(--sev-high);}
+  .chip.active[data-sev="medium"]{border-color:var(--sev-medium);}
+  .chip.active[data-sev="low"]{border-color:var(--sev-low);}
+
+  .section-label{font-family:var(--font-mono);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--ink-faint);margin:22px 2px 8px;}
+
+  /* ---- scorecard: the main "quick read" view ---- */
+  .scorecard{display:flex;flex-direction:column;border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--surface);box-shadow:var(--shadow);}
+  .score-head{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:10px;padding:10px 14px;background:var(--surface-2);font-family:var(--font-mono);font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--ink-faint);font-weight:600;}
+  .score-row{border-top:1px solid var(--border);}
+  .score-row:first-child{border-top:none;}
+  .score-main{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:10px;padding:12px 14px;align-items:center;}
+  .score-row.clickable .score-main{cursor:pointer;}
+  .score-row.clickable .score-main:hover{background:var(--surface-2);}
+  .score-name-wrap{display:flex;align-items:center;gap:8px;min-width:0;}
+  .score-chev{font-family:var(--font-mono);color:var(--ink-faint);font-size:0.75rem;transition:transform .15s ease;flex:none;width:10px;}
+  .score-row.open .score-chev{transform:rotate(90deg);}
+  .status-dot{width:9px;height:9px;border-radius:50%;flex:none;}
+  .status-dot.sev-high{background:var(--sev-high);}
+  .status-dot.sev-medium{background:var(--sev-medium);}
+  .status-dot.sev-low{background:var(--sev-low);}
+  .status-dot.clean{background:var(--good);}
+  .score-name{font-weight:700;font-size:0.92rem;color:var(--ink);overflow:hidden;text-overflow:ellipsis;}
+  .score-col{display:flex;flex-wrap:wrap;gap:4px;align-items:center;}
+  .col-label{display:none;font-family:var(--font-mono);font-size:0.62rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--ink-faint);margin-right:2px;}
+  .score-tag{display:inline-block;font-size:0.76rem;font-weight:600;padding:2px 8px;border-radius:5px;}
+  .score-tag.sev-high{color:var(--sev-high);background:var(--sev-high-bg);}
+  .score-tag.sev-medium{color:var(--sev-medium);background:var(--sev-medium-bg);}
+  .score-tag.sev-low{color:var(--sev-low);background:var(--sev-low-bg);}
+  .score-clean-badge{display:inline-flex;align-items:center;gap:4px;font-size:0.8rem;font-weight:700;color:var(--good);}
+  .score-dash{color:var(--ink-faint);}
+  .score-detail{display:none;padding:0 14px 14px 32px;flex-direction:column;gap:10px;border-top:1px dashed var(--border);}
+  .score-row.open .score-detail{display:flex;}
+  .score-detail-item{padding-top:10px;}
+  .score-detail-item:first-child{padding-top:12px;border-top:none;}
+  .score-detail-item + .score-detail-item{border-top:1px dashed var(--border);}
+  .score-detail-item b{display:block;font-size:0.78rem;color:var(--ink);margin-bottom:3px;}
+  .score-detail-item p{margin:0 0 6px;font-size:0.85rem;color:var(--ink-muted);}
+  .score-detail-item .jump{font-family:var(--font-mono);font-size:0.74rem;color:var(--accent-ink);background:var(--accent-bg);display:inline-block;width:fit-content;padding:4px 9px;border-radius:5px;text-decoration:none;}
+
+  @media (max-width:640px){
+    .score-head{display:none;}
+    .score-main{grid-template-columns:1fr;gap:6px;padding:12px 14px;}
+    .col-label{display:inline;}
+  }
+
+  .disclaimer{margin-top:18px;padding-top:14px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:6px;}
+  .disclaimer p{margin:0;font-size:0.76rem;color:var(--ink-faint);line-height:1.5;}
+
+  .coaching-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:26px 28px;}
+  .coaching-card .to{font-family:var(--font-mono);font-size:0.76rem;color:var(--ink-faint);margin-bottom:14px;}
+  .coaching-card p{font-size:1rem;color:var(--ink);line-height:1.7;margin:0;}
+  .coaching-recap{margin-top:22px;display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;}
+  .recap-item{background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;}
+  .recap-item .n{font-family:var(--font-display);font-weight:800;font-size:1.6rem;color:var(--accent);line-height:1;}
+  .recap-item .l{font-size:0.78rem;color:var(--ink-muted);margin-top:4px;}
+
+  .footnote{margin-top:28px;font-size:0.76rem;color:var(--ink-faint);font-family:var(--font-mono);border-top:1px solid var(--border);padding-top:14px;}
+  [data-view="inspector"] .admin-only{display:none;}
+  [data-view="admin"] .inspector-only{display:none;}
+  @media (max-width:520px){ .brand h1{font-size:2rem;} .meta-top{flex-direction:column;} }
+
+  /* ---- print / PDF export ----
+     Uses the browser's own print-to-PDF rather than a server-side renderer -
+     this is the exact mechanism already confirmed to keep the #page-XX /
+     #cell_<hash> deep links clickable in the exported PDF. */
+  @media print{
+    @page{ margin:0.5in; }
+    :root{
+      --bg:#fff; --surface:#fff; --surface-2:#f7f8f9;
+      --ink:#16233D; --ink-muted:#51647F; --ink-faint:#7C8CA3; --border:#D9DEE4;
+      --accent:#0D9488; --accent-ink:#0B4F48; --accent-bg:#E3F5F2;
+    }
+    * { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    body{background:#fff; font-size:9.5pt;}
+    .run-card, .view-toggle, .pdf-btn, .brand .tag{display:none !important;}
+    .subtitle{display:none;}
+    .print-only{display:block !important;}
+    .brand h1{font-size:1.6rem;}
+    .topbar{border-bottom:2px solid var(--ink); padding-bottom:6px; margin-bottom:12px;}
+    .brand h1 span{background:none;color:var(--accent-ink);}
+    .inspector-only, .admin-only{display:block !important;}
+    /* Only the small blocks stay unbroken - a big unbreakable block that
+       doesn't fit remaining page space gets pushed whole onto a fresh page,
+       leaving the rest of the prior page blank. */
+    .chips, .recap-item, .score-row{ break-inside:avoid; page-break-inside:avoid; }
+    .scorecard{box-shadow:none; border:1px solid var(--border); break-inside:auto;}
+    .score-chev{display:none;}
+    .score-detail{display:flex !important;}
+    .meta-card, .coaching-card{box-shadow:none; border:1px solid var(--border);}
+    .section-label{break-after:avoid; page-break-after:avoid; margin:12px 2px 6px;}
+    a{color:var(--accent-ink); text-decoration:underline;}
+
+    .meta-card{padding:12px 14px;}
+    .meta-assessment{margin-top:8px; padding-top:8px;}
+    .chips{margin-top:8px; gap:5px;}
+    .chip{padding:4px 9px;}
+    .chip .n{font-size:1.1rem;}
+    .coaching-card{padding:14px 16px;}
+    .coaching-card .to{margin-bottom:8px;}
+    .coaching-card p{line-height:1.45;}
+    .coaching-recap{margin-top:12px; gap:5px;}
+    .recap-item{padding:6px 9px;}
+    .recap-item .n{font-size:1.15rem;}
+    .score-main{padding:8px 10px;}
+    .score-detail{padding:0 10px 8px 22px; gap:5px;}
+    .score-detail-item p{line-height:1.4;}
+    .footnote{margin-top:12px; padding-top:8px;}
+    .disclaimer{margin-top:10px; padding-top:8px;}
+    .wrap{max-width:100%;padding:0;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap" id="app" data-view="admin">
+
+  <div class="topbar">
+    <div>
+      <div class="brand"><h1><span>Nany</span></h1><span class="tag">live</span></div>
+      <p class="subtitle">Training wheels for new-inspector reports — paste a report URL and run a QA pass</p>
+      <p class="subtitle print-only">QA report generated by Nany</p>
+    </div>
+    <div class="topbar-actions">
+      <div class="view-toggle" role="tablist" aria-label="View">
+        <button type="button" data-set-view="admin" class="active">Nany's Notes</button>
+        <button type="button" data-set-view="inspector">The Talk</button>
+      </div>
+      <button type="button" id="pdf-btn" class="pdf-btn" hidden>Export PDF</button>
+    </div>
+  </div>
+
+  <div class="run-card">
+    <label for="url-input">Inspectagram report URL</label>
+    <div class="run-row">
+      <input type="text" id="url-input" placeholder="https://admin.inspectagram.io/v3/reports/..." autocomplete="off">
+      <button type="button" id="run-btn">Run Nany</button>
+    </div>
+    <div class="run-status" id="run-status"><div class="spinner"></div><span id="run-status-text">Nany is reading the report...</span></div>
+    <div class="run-error" id="run-error"></div>
+  </div>
+
+  <div class="results" id="results">
+    <div class="meta-card">
+      <div class="meta-top">
+        <div>
+          <div class="meta-address" id="meta-address"></div>
+          <div class="meta-sub"><span>Client: <b id="meta-client"></b></span></div>
+        </div>
+        <a class="meta-source" id="meta-source" href="#" target="_blank" rel="noopener">view source report ↗</a>
+      </div>
+      <div class="meta-assessment" id="meta-assessment"></div>
+      <div class="chips" id="chips">
+        <div class="chip active" data-sev="all"><span class="n" id="count-all"></span><span class="l">All</span></div>
+        <div class="chip" data-sev="high"><span class="n" id="count-high"></span><span class="l">Liability</span></div>
+        <div class="chip" data-sev="medium"><span class="n" id="count-medium"></span><span class="l">Credibility</span></div>
+        <div class="chip" data-sev="low"><span class="n" id="count-low"></span><span class="l">Polish</span></div>
+      </div>
+    </div>
+
+    <div class="inspector-only">
+      <div class="section-label">The Talk</div>
+      <div class="coaching-card">
+        <div class="to">From: Nany</div>
+        <p id="coach-text"></p>
+        <div class="coaching-recap" id="coach-recap"></div>
+      </div>
+    </div>
+
+    <div class="section-label">Section by section</div>
+    <div class="scorecard" id="sections">
+      <div class="score-head"><div>Section</div><div>Review</div><div>Clean</div></div>
+    </div>
+
+    <div class="footnote" id="footnote"></div>
+    <div class="disclaimer">
+      <p>Nany promotes clean, professional inspection reports and best practices. It checks for completeness and consistency — it does not review for professional judgment calls or speculative assessments.</p>
+      <p>Reminder: take close-up photos of each component, not just wide shots — background context that goes unreported in a photo can become a liability if it's missed.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+const app = document.getElementById('app');
+const urlInput = document.getElementById('url-input');
+const runBtn = document.getElementById('run-btn');
+const runStatus = document.getElementById('run-status');
+const runStatusText = document.getElementById('run-status-text');
+const runError = document.getElementById('run-error');
+const results = document.getElementById('results');
+const sectionsEl = document.getElementById('sections');
+
+const STATUS_MESSAGES = [
+  'Nany is reading the report...',
+  'Checking The Insurance section...',
+  'Checking The Summary against the body findings...',
+  'Looking for leftover draft text and missing photos...',
+  'Writing up the findings...'
+];
+
+async function runReview(){
+  const url = urlInput.value.trim();
+  if(!url){ showError('Paste a report URL first.'); return; }
+  runBtn.disabled = true;
+  runError.classList.remove('visible');
+  results.classList.remove('visible');
+  runStatus.classList.add('visible');
+  let step = 0;
+  runStatusText.textContent = STATUS_MESSAGES[0];
+  const cycle = setInterval(() => {
+    step = (step + 1) % STATUS_MESSAGES.length;
+    runStatusText.textContent = STATUS_MESSAGES[step];
+  }, 3200);
+
+  try{
+    const resp = await fetch('/api/review', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({url})
+    });
+    const data = await resp.json();
+    if(!resp.ok){ throw new Error(data.error || 'Something went wrong.'); }
+    render(data);
+    results.classList.add('visible');
+    document.getElementById('pdf-btn').hidden = false;
+  }catch(err){
+    showError(err.message);
+  }finally{
+    clearInterval(cycle);
+    runStatus.classList.remove('visible');
+    runBtn.disabled = false;
+  }
+}
+
+function showError(msg){
+  runError.textContent = msg;
+  runError.classList.add('visible');
+}
+
+const AREA_LABEL = {
+  cover:'Cover', agreement:'Agreement', roof:'Roof', exterior:'Exterior', attic:'Attic',
+  interior:'Interior', kitchen:'Kitchen', laundry:'Laundry', bathroom:'Bathroom',
+  mechanical:'Mechanical', insurance:'Insurance', summary:'Summary', other:'Other'
+};
+// Every finding gets exactly one of these six tags from the model. The bucket
+// (which column it renders in) is decided here, not by the model, so it's
+// always consistent even if the model's wording drifts slightly.
+const TAG_BUCKET = {
+  'Missing info': 'review', 'Missing photos': 'review',
+  'Mismatched severity': 'review', 'Wording': 'review',
+  'Unused pages': 'clean', 'Placeholder text': 'clean',
+};
+const SEV_RANK = {high:3, medium:2, low:1};
+const SEV_CLASS = {high:'sev-high', medium:'sev-medium', low:'sev-low'};
+
+function worstSeverity(items){
+  return items.reduce((worst, f) => (SEV_RANK[f.severity] > SEV_RANK[worst] ? f.severity : worst), 'low');
+}
+
+function tagCellHtml(tags){
+  if(!tags.length) return '<span class="score-dash">—</span>';
+  return tags.map(t => `<span class="score-tag ${SEV_CLASS[t.severity]}">${t.tag}</span>`).join('');
+}
+
+function render(data){
+  document.getElementById('meta-address').textContent = data.property_address || 'Address not found';
+  document.getElementById('meta-client').textContent = data.client_name || 'not found';
+  document.getElementById('meta-assessment').textContent = data.overall_assessment || '';
+  document.getElementById('meta-source').href = data.source_url;
+
+  const findings = data.findings || [];
+  const counts = {high:0, medium:0, low:0};
+  findings.forEach(f => counts[f.severity] = (counts[f.severity]||0) + 1);
+  document.getElementById('count-all').textContent = findings.length;
+  document.getElementById('count-high').textContent = counts.high;
+  document.getElementById('count-medium').textContent = counts.medium;
+  document.getElementById('count-low').textContent = counts.low;
+  document.getElementById('footnote').textContent = findings.length + ' findings from this report · Nany concept build';
+
+  const byArea = {};
+  findings.forEach(f => {
+    const a = f.area || 'other';
+    (byArea[a] = byArea[a] || []).push(f);
+  });
+  const areasPresent = (data.sections_reviewed && data.sections_reviewed.length)
+    ? data.sections_reviewed
+    : Object.keys(byArea);
+
+  // Clean sections first (nothing to do), then issues worst-severity-first —
+  // what needs attention should surface before what's already fine to skim past.
+  const sectionsData = areasPresent.map(area => {
+    const items = byArea[area] || [];
+    return {area, items, worst: items.length ? worstSeverity(items) : null};
+  }).sort((a, b) => {
+    if(!a.worst && !b.worst) return 0;
+    if(!a.worst) return 1;
+    if(!b.worst) return -1;
+    return SEV_RANK[b.worst] - SEV_RANK[a.worst];
+  });
+
+  sectionsEl.querySelectorAll('.score-row').forEach(r => r.remove());
+  sectionsData.forEach(({area, items, worst}) => {
+    const label = AREA_LABEL[area] || area;
+    const row = document.createElement('div');
+    row.className = 'score-row';
+
+    if(items.length === 0){
+      row.innerHTML = `
+        <div class="score-main">
+          <div class="score-name-wrap">
+            <span class="score-chev" style="visibility:hidden">▸</span>
+            <span class="status-dot clean"></span>
+            <span class="score-name">${label}</span>
+          </div>
+          <div class="score-col"><span class="score-clean-badge">✓ Clean</span></div>
+          <div class="score-col"><span class="score-dash">—</span></div>
+        </div>
+      `;
+      sectionsEl.appendChild(row);
+      return;
+    }
+
+    row.classList.add('clickable');
+    // dedupe tags within this section, tracking the worst severity behind each
+    const byTag = {};
+    items.forEach(f => {
+      const t = TAG_BUCKET[f.tag] ? f.tag : 'Wording';
+      (byTag[t] = byTag[t] || []).push(f);
+    });
+    const reviewTags = [], cleanTags = [];
+    Object.entries(byTag).forEach(([tag, fs]) => {
+      const entry = {tag, severity: worstSeverity(fs)};
+      (TAG_BUCKET[tag] === 'clean' ? cleanTags : reviewTags).push(entry);
+    });
+
+    row.innerHTML = `
+      <div class="score-main">
+        <div class="score-name-wrap">
+          <span class="score-chev">▸</span>
+          <span class="status-dot ${SEV_CLASS[worst]}"></span>
+          <span class="score-name">${label}</span>
+        </div>
+        <div class="score-col">${reviewTags.length ? '<span class="col-label">Review</span>' : ''}${tagCellHtml(reviewTags)}</div>
+        <div class="score-col">${cleanTags.length ? '<span class="col-label">Clean</span>' : ''}${tagCellHtml(cleanTags)}</div>
+      </div>
+      <div class="score-detail">
+        ${items.map(f => {
+          const link = f.anchor ? `${data.source_url}#${f.anchor}` : null;
+          return `
+            <div class="score-detail-item">
+              <b>${f.tag || 'Wording'}</b>
+              <p>${f.issue}</p>
+              <p>${f.why_it_matters}</p>
+              <p><b style="font-size:0.78rem;">Fix:</b> ${f.fix}</p>
+              ${link ? `<a class="jump" href="${link}" target="_blank" rel="noopener">jump to spot in report → ${f.anchor}</a>` : ''}
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+    row.querySelector('.score-main').addEventListener('click', () => row.classList.toggle('open'));
+    sectionsEl.appendChild(row);
+  });
+
+  document.querySelectorAll('.chip').forEach(chip => {
+    chip.onclick = () => {
+      document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      const sev = chip.dataset.sev;
+      sectionsEl.querySelectorAll('.score-row').forEach(row => {
+        if(!row.classList.contains('clickable')){
+          row.style.display = (sev === 'all') ? '' : 'none';
+          return;
+        }
+        const hasSev = [...row.querySelectorAll('.score-tag')].some(t => t.classList.contains(SEV_CLASS[sev]));
+        row.style.display = (sev === 'all' || hasSev) ? '' : 'none';
+      });
+    };
+  });
+
+  document.getElementById('coach-text').textContent = data.coaching_summary || '';
+  const recap = document.getElementById('coach-recap');
+  recap.innerHTML = '';
+  sectionsData.filter(s => s.items.length > 0).slice(0,6).forEach(({area, items}) => {
+    const item = document.createElement('div');
+    item.className = 'recap-item';
+    item.innerHTML = `<div class="n">${items.length}</div><div class="l">${AREA_LABEL[area] || area}</div>`;
+    recap.appendChild(item);
+  });
+}
+
+runBtn.addEventListener('click', runReview);
+urlInput.addEventListener('keydown', e => { if(e.key === 'Enter') runReview(); });
+
+document.querySelectorAll('[data-set-view]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-set-view]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    app.dataset.view = btn.dataset.setView;
+  });
+});
+
+document.getElementById('pdf-btn').addEventListener('click', () => window.print());
+</script>
+</body>
+</html>
