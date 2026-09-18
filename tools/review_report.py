@@ -111,10 +111,10 @@ Return ONLY valid JSON, no markdown fencing:
       "area": "one of the fixed area values above",
       "tag": "one of the fixed tag values above",
       "severity": "high|medium|low",
-      "issue": "what's wrong, specifically",
+      "issue": "what's wrong, specifically — this is the evidence, keep full detail/quotes here",
       "anchor": "the nearest [ANCHOR:...] value if one appeared near this issue, else null",
-      "why_it_matters": "why a new inspector should care (client trust, liability, completeness)",
-      "fix": "the concrete action to take"
+      "why_it_matters": "a short phrase, under 8 words, not a sentence (e.g. 'Erodes trust, creates liability if disputed' not 'A date discrepancy on the cover page creates immediate doubt...'). This only shows when someone expands the row, not on the main scorecard, so keep it a fragment, not prose.",
+      "fix": "a short phrase, under 8 words, not a sentence (e.g. 'Pick the correct date, remove the other' not 'Confirm the correct inspection date and ensure only one date appears...'). Same rule as why_it_matters — fragment, not prose."
     }
   ],
   "coaching_summary": "a short, encouraging paragraph (120-200 words) written directly to the inspector — \
