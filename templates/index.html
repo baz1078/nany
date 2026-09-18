@@ -383,9 +383,10 @@ function render(data){
     const a = f.area || 'other';
     (byArea[a] = byArea[a] || []).push(f);
   });
-  const areasPresent = (data.sections_reviewed && data.sections_reviewed.length)
-    ? data.sections_reviewed
-    : Object.keys(byArea);
+  // Union, not just sections_reviewed: if the model tags a finding with an
+  // area but forgets to also list that area in sections_reviewed, the
+  // finding must still get a row rather than silently disappearing.
+  const areasPresent = Array.from(new Set([...(data.sections_reviewed || []), ...Object.keys(byArea)]));
 
   // Clean sections first (nothing to do), then issues worst-severity-first —
   // what needs attention should surface before what's already fine to skim past.
