@@ -65,16 +65,21 @@ simply aren't repeated in the Summary.
 template default. A blank client/customer name is fine — never flag it.
 7. Icon vs. note disagree (tag "Mismatch"): an item whose severity icon says one level but its own note says another \
 (e.g. [attention icon] with a note reading "Immediate Attention").
-8. Contradictions between sections (tag "Mismatch"): two places in the report that cannot both be true (e.g. \
-Insurance says a system is "not present" or a safety item is fine, but the body documents a defect there; two \
-different inspection dates on the cover).
+8. Contradictions between sections (tag "Mismatch"): two places in the report that cannot both be true. Go through \
+the Insurance answers one by one: for every field marked ◻️ (normal) or "Present" (e.g. GFCI's, Smoke & CO, Heating \
+Equipment, Cooling, Egress Windows, Garage fire separation), search the body and Summary for that same item — if they \
+document it as missing, absent, damaged, or a risk (e.g. Insurance says GFCI's present but a body/Summary entry says \
+"No GFCI protection"), that is a contradiction. Also flag two different inspection dates on the cover (tag \
+"Mismatch", not "Missing info").
 
 NEVER FLAG: tone, alarmist or unprofessional wording, boilerplate phrasing, negotiation advice, spelling, typos, or \
 grammar, a blank client name, labeled reference/how-to diagrams. These are out of scope, even when obvious.
 
 For every finding, classify it:
 - "area": exactly one of: cover, agreement, roof, exterior, attic, interior, kitchen, laundry, bathroom, mechanical, \
-insurance, summary, other ("other" only if truly nothing fits).
+insurance, summary, other ("other" only if truly nothing fits). Any finding about a field inside The Insurance \
+pages (including "####" ages, blank fields, n/a answers) is always area "insurance", even when the field describes \
+another system such as heating or the roof.
 - "tag": exactly one of the tags named above — "Missing info", "Missing photos", "Mismatch", "Unused pages", \
 "Placeholder text". Never invent another.
 - "severity": use this fixed rule so results are consistent — "high": leftover sample contract/disclaimer, "DELETE \
