@@ -50,6 +50,15 @@ def fetch_report_text(url, timeout=20, include_anchors=True):
             if tag in self._SKIP:
                 self._skip_depth += 1
             elif tag == 'img' and self._skip_depth == 0:
+                # Inspectagram serves the inspector's own photos from /data/
+                # and its stock library graphics (legend icons, chapter
+                # pages, "example" pictures) from /global/ - the only way to
+                # tell a real photo from a stock placeholder in the scrape.
+                src = attrs_d.get('src') or ''
+                if '/global/' in src:
+                    self.parts.append(' [STOCK-IMAGE] ')
+                elif '/data/' in src:
+                    self.parts.append(' [PHOTO] ')
                 alt = attrs_d.get('alt')
                 if alt and alt.strip():
                     self.parts.append(' [' + alt.strip() + '] ')

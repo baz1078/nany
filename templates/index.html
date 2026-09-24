@@ -157,6 +157,22 @@
   .recap-item .n{font-family:var(--font-display);font-weight:800;font-size:1.6rem;color:var(--accent);line-height:1;}
   .recap-item .l{font-size:0.78rem;color:var(--ink-muted);margin-top:4px;}
 
+
+  /* ---- Also noticed: low-key suggestions beyond the checklist ---- */
+  .also{margin-top:16px;border:1px dashed var(--border);border-radius:10px;background:var(--surface);}
+  .also[hidden]{display:none;}
+  .also-head{display:flex;align-items:center;gap:8px;padding:11px 14px;cursor:pointer;font-size:0.84rem;font-weight:600;color:var(--ink-muted);}
+  .also-head .score-chev{font-size:0.72rem;}
+  .also.open .score-chev{transform:rotate(90deg);}
+  .also-sub{font-weight:400;color:var(--ink-faint);font-size:0.76rem;}
+  .also-body{display:none;padding:0 14px 12px 32px;flex-direction:column;}
+  .also.open .also-body{display:flex;}
+  .also-item{padding:9px 0;border-top:1px dashed var(--border);font-size:0.85rem;color:var(--ink-muted);}
+  .also-item:first-child{border-top:none;}
+  .also-item b{color:var(--ink);font-size:0.78rem;display:block;margin-bottom:2px;}
+  .also-item .jump{font-family:var(--font-mono);font-size:0.74rem;color:var(--accent-ink);background:var(--accent-bg);display:inline-block;padding:4px 9px;border-radius:5px;text-decoration:none;margin-top:4px;}
+  .saved-note{font-size:0.78rem;color:var(--ink-faint);margin:0 2px 10px;}
+  .saved-note[hidden]{display:none;}
   .footnote{margin-top:28px;font-size:0.76rem;color:var(--ink-faint);font-family:var(--font-mono);border-top:1px solid var(--border);padding-top:14px;}
   [data-view="inspector"] .admin-only{display:none;}
   [data-view="admin"] .inspector-only{display:none;}
@@ -207,6 +223,8 @@
     .score-main{padding:8px 10px;}
     .score-detail{padding:0 10px 8px 22px; gap:5px;}
     .score-detail-item p{line-height:1.4;}
+    .also-body{display:flex !important;}
+    .also-head .score-chev, .saved-note{display:none !important;}
     .footnote{margin-top:12px; padding-top:8px;}
     .disclaimer{margin-top:10px; padding-top:8px;}
     .wrap{max-width:100%;padding:0;}
@@ -241,6 +259,8 @@
     <div class="run-error" id="run-error"></div>
   </div>
 
+  <div class="saved-note" id="saved-note" hidden></div>
+
   <div class="results" id="results">
     <div class="meta-card">
       <div class="meta-top">
@@ -273,6 +293,11 @@
       <div class="score-head"><div>Section</div><div>Review</div><div>Clean</div></div>
     </div>
 
+    <div class="also" id="also" hidden>
+      <div class="also-head" id="also-head"><span class="score-chev">▸</span><span>Also noticed</span><span class="also-sub" id="also-sub"></span></div>
+      <div class="also-body" id="also-body"></div>
+    </div>
+
     <div class="footnote" id="footnote"></div>
     <div class="disclaimer">
       <p>Nany promotes clean, professional inspection reports and best practices. It checks for completeness and consistency — it does not review for professional judgment calls or speculative assessments.</p>
@@ -299,6 +324,37 @@ const STATUS_MESSAGES = [
   'Writing up the findings...'
 ];
 
+// Results are kept in this browser (per report link) so Back/refresh - or coming
+// back from the Inspectagram tab - never means re-running (and re-paying for) Nany.
+const STORE_PREFIX = 'nany:res:';
+function loadSaved(url){
+  try{ return JSON.parse(localStorage.getItem(STORE_PREFIX + url) || 'null'); }catch(e){ return null; }
+}
+function saveResult(url, data){
+  try{
+    localStorage.setItem(STORE_PREFIX + url, JSON.stringify({savedAt: Date.now(), data}));
+    localStorage.setItem('nany:last-url', url);
+    const idx = JSON.parse(localStorage.getItem('nany:index') || '[]').filter(u => u !== url);
+    idx.unshift(url);
+    idx.slice(5).forEach(u => localStorage.removeItem(STORE_PREFIX + u));
+    localStorage.setItem('nany:index', JSON.stringify(idx.slice(0, 5)));
+  }catch(e){}
+}
+// Re-run guard: an "Also noticed" item that wasn't shown last time only appears if
+// the text it points at actually changed - otherwise fixing things would keep
+// surfacing "new" items that were there all along.
+function applyRerunGuard(url, data){
+  const prev = loadSaved(url);
+  if(!prev || !prev.data || !data.also_noticed) return;
+  const before = new Set((prev.data.also_noticed || []).map(i => i.anchor));
+  data.also_noticed = data.also_noticed.filter(i => {
+    if(before.has(i.anchor)) return true;
+    const ph = prev.data.anchor_hashes && prev.data.anchor_hashes[i.anchor];
+    const ch = data.anchor_hashes && data.anchor_hashes[i.anchor];
+    return !(ph && ch && ph === ch);
+  });
+}
+
 async function runReview(){
   const url = urlInput.value.trim();
   if(!url){ showError('Paste a report URL first.'); return; }
@@ -321,6 +377,9 @@ async function runReview(){
     });
     const data = await resp.json();
     if(!resp.ok){ throw new Error(data.error || 'Something went wrong.'); }
+    applyRerunGuard(url, data);
+    saveResult(url, data);
+    document.getElementById('saved-note').hidden = true;
     render(data);
     results.classList.add('visible');
     document.getElementById('pdf-btn').hidden = false;
@@ -348,7 +407,7 @@ const AREA_LABEL = {
 // always consistent even if the model's wording drifts slightly.
 const TAG_BUCKET = {
   'Missing info': 'review', 'Missing photos': 'review',
-  'Mismatched severity': 'review', 'Wording': 'review',
+  'Mismatch': 'review',
   'Unused pages': 'clean', 'Placeholder text': 'clean',
 };
 const SEV_RANK = {high:3, medium:2, low:1};
@@ -377,6 +436,16 @@ function render(data){
   document.getElementById('count-medium').textContent = counts.medium;
   document.getElementById('count-low').textContent = counts.low;
   document.getElementById('footnote').textContent = findings.length + ' findings from this report · Nany concept build';
+  const alsoItems = data.also_noticed || [];
+  const alsoEl = document.getElementById('also');
+  alsoEl.hidden = alsoItems.length === 0;
+  document.getElementById('also-sub').textContent = alsoItems.length
+    ? ' (' + alsoItems.length + ') — suggestions, not required fixes' : '';
+  document.getElementById('also-body').innerHTML = alsoItems.map(i => {
+    const link = i.anchor ? `${data.source_url}#${i.anchor}` : null;
+    return `<div class="also-item"><b>${AREA_LABEL[i.area] || i.section || ''}</b>${i.issue}${i.fix ? ' — ' + i.fix : ''}${link ? `<br><a class="jump" href="${link}" target="_blank" rel="noopener">jump to spot in report → ${i.anchor}</a>` : ''}</div>`;
+  }).join('');
+
 
   const byArea = {};
   findings.forEach(f => {
@@ -426,7 +495,7 @@ function render(data){
     // dedupe tags within this section, tracking the worst severity behind each
     const byTag = {};
     items.forEach(f => {
-      const t = TAG_BUCKET[f.tag] ? f.tag : 'Wording';
+      const t = TAG_BUCKET[f.tag] ? f.tag : 'Missing info';
       (byTag[t] = byTag[t] || []).push(f);
     });
     const reviewTags = [], cleanTags = [];
@@ -450,7 +519,7 @@ function render(data){
           const link = f.anchor ? `${data.source_url}#${f.anchor}` : null;
           return `
             <div class="score-detail-item">
-              <b>${f.tag || 'Wording'}</b>
+              <b>${f.tag || 'Missing info'}</b>
               <p>${f.issue}</p>
               <p>${f.why_it_matters}</p>
               <p><b style="font-size:0.78rem;">Fix:</b> ${f.fix}</p>
@@ -503,6 +572,25 @@ document.querySelectorAll('[data-set-view]').forEach(btn => {
 });
 
 document.getElementById('pdf-btn').addEventListener('click', () => window.print());
+
+document.getElementById('also-head').addEventListener('click', () => document.getElementById('also').classList.toggle('open'));
+
+(function restoreLast(){
+  try{
+    const lastUrl = localStorage.getItem('nany:last-url');
+    const saved = lastUrl && loadSaved(lastUrl);
+    if(!saved || !saved.data) return;
+    urlInput.value = lastUrl;
+    render(saved.data);
+    results.classList.add('visible');
+    document.getElementById('pdf-btn').hidden = false;
+    const mins = Math.max(1, Math.round((Date.now() - saved.savedAt) / 60000));
+    const ago = mins < 60 ? mins + ' min ago' : mins < 1440 ? Math.round(mins / 60) + ' hr ago' : Math.round(mins / 1440) + ' day(s) ago';
+    const note = document.getElementById('saved-note');
+    note.textContent = 'Showing your last results (' + ago + ') — no need to re-run. Run Nany again after you fix things to refresh.';
+    note.hidden = false;
+  }catch(e){}
+})();
 </script>
 </body>
 </html>
