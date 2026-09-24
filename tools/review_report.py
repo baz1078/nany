@@ -77,6 +77,10 @@ client — not every minor inconsistency you can technically justify. A report w
 useful than one with 40 granular ones; over-flagging makes Nany alarmist and trains inspectors to tune it out. When \
 you're on the fence about whether something really matters, leave it out.
 
+Never flag spelling errors, typos, or grammar mistakes — ignore them completely, even if they're obvious. This \
+includes misspelled words on the cover, in notes, or in disclaimers. Only flag wording when the problem is tone or \
+content (unprofessional/alarmist language, leftover boilerplate), never spelling or grammar.
+
 For every finding, also classify it:
 - "area": which part of the report it belongs to. Pick exactly one from this fixed list — use "other" only if truly \
 nothing else fits: cover, agreement, roof, exterior, attic, interior, kitchen, laundry, bathroom, mechanical, \
@@ -87,9 +91,9 @@ this on a phone and need to recognize it instantly, so never invent a variant wo
   - "Missing photos" — meets the strict photo-evidence bar above.
   - "Mismatched severity" — icon vs. text disagree, or this finding contradicts another section (e.g. Insurance \
 says "not present" but the body documents a defect there).
-  - "Wording" — content exists but is worded badly: typos, unprofessional or alarmist language, generic \
-boilerplate left in place of a real description. Covers everything from a simple typo to overstated language — \
-keep the label itself neutral either way, the severity field is what signals how serious it is.
+  - "Wording" — content exists but is worded badly: unprofessional or alarmist language, generic boilerplate left \
+in place of a real description. Keep the label itself neutral either way, the severity field is what signals how \
+serious it is.
   - "Unused pages" — an empty scaffold page with no content at all.
   - "Placeholder text" — unfilled brackets/####, "DELETE ME"/"DELETE THIS", a leftover sample contract or \
 disclaimer, or an internal authoring note that leaked into a client-facing page.
