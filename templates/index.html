@@ -173,6 +173,9 @@
   .also-item .jump{font-family:var(--font-mono);font-size:0.74rem;color:var(--accent-ink);background:var(--accent-bg);display:inline-block;padding:4px 9px;border-radius:5px;text-decoration:none;margin-top:4px;}
   .saved-note{font-size:0.78rem;color:var(--ink-faint);margin:0 2px 10px;}
   .saved-note[hidden]{display:none;}
+  .where{font-size:0.8rem;color:var(--ink-muted);margin:2px 0 6px;}
+  .where i{font-style:normal;font-weight:600;color:var(--ink);}
+  .tip{font-size:0.78rem;color:var(--ink-muted);background:var(--surface-2);border-radius:8px;padding:8px 12px;margin:0 0 4px;}
   .footnote{margin-top:28px;font-size:0.76rem;color:var(--ink-faint);font-family:var(--font-mono);border-top:1px solid var(--border);padding-top:14px;}
   [data-view="inspector"] .admin-only{display:none;}
   [data-view="admin"] .inspector-only{display:none;}
@@ -224,7 +227,7 @@
     .score-detail{padding:0 10px 8px 22px; gap:5px;}
     .score-detail-item p{line-height:1.4;}
     .also-body{display:flex !important;}
-    .also-head .score-chev, .saved-note{display:none !important;}
+    .also-head .score-chev, .saved-note, .tip{display:none !important;}
     .footnote{margin-top:12px; padding-top:8px;}
     .disclaimer{margin-top:10px; padding-top:8px;}
     .wrap{max-width:100%;padding:0;}
@@ -288,6 +291,7 @@
       </div>
     </div>
 
+    <div class="tip">Tap a link and land in the report? Tap <b>?</b> in Inspectagram again — your results are saved, no re-run needed.</div>
     <div class="section-label">Section by section</div>
     <div class="scorecard" id="sections">
       <div class="score-head"><div>Section</div><div>Review</div><div>Clean</div></div>
@@ -422,6 +426,18 @@ function tagCellHtml(tags){
   return tags.map(t => `<span class="score-tag ${SEV_CLASS[t.severity]}">${t.tag}</span>`).join('');
 }
 
+// Where to find it in the report, written out so the inspector can go straight to it
+// in the Inspectagram app even if the link itself can't bring them back to Nany.
+function where(f){
+  const bits = [];
+  if(f.page) bits.push('Page ' + f.page);
+  if(f.section) bits.push(f.section);
+  return bits.length ? `<div class="where"><i>Find it:</i> ${bits.join(' · ')}</div>` : '';
+}
+function jumpLabel(f){
+  return f.page ? 'Open page ' + f.page + ' in the report ↗' : 'Open in the report ↗';
+}
+
 function render(data){
   document.getElementById('meta-address').textContent = data.property_address || 'Address not found';
   document.getElementById('meta-client').textContent = data.client_name || 'not found';
@@ -443,7 +459,7 @@ function render(data){
     ? ' (' + alsoItems.length + ') — suggestions, not required fixes' : '';
   document.getElementById('also-body').innerHTML = alsoItems.map(i => {
     const link = i.anchor ? `${data.source_url}#${i.anchor}` : null;
-    return `<div class="also-item"><b>${AREA_LABEL[i.area] || i.section || ''}</b>${i.issue}${i.fix ? ' — ' + i.fix : ''}${link ? `<br><a class="jump" href="${link}" target="_blank" rel="noopener">jump to spot in report → ${i.anchor}</a>` : ''}</div>`;
+    return `<div class="also-item"><b>${AREA_LABEL[i.area] || i.section || ''}</b>${i.issue}${i.fix ? ' — ' + i.fix : ''}${where(i) ? '<br>' + where(i) : ''}${link ? `<br><a class="jump" href="${link}" target="_blank" rel="noopener">${jumpLabel(i)}</a>` : ''}</div>`;
   }).join('');
 
 
@@ -523,7 +539,7 @@ function render(data){
               <p>${f.issue}</p>
               <p>${f.why_it_matters}</p>
               <p><b style="font-size:0.78rem;">Fix:</b> ${f.fix}</p>
-              ${link ? `<a class="jump" href="${link}" target="_blank" rel="noopener">jump to spot in report → ${f.anchor}</a>` : ''}
+              ${where(f)}${link ? `<a class="jump" href="${link}" target="_blank" rel="noopener">${jumpLabel(f)}</a>` : ''}
             </div>
           `;
         }).join('')}

@@ -244,6 +244,18 @@ def find_insurance_blanks(text):
     return blanks
 
 
+def page_map(text):
+    """anchor -> report page number, using the nearest page-N anchor at or before it."""
+    out, page = {}, None
+    for m in _ANCHOR_RE.finditer(text):
+        a = m.group(1)
+        pm = re.fullmatch(r"page-(\d+)", a)
+        if pm:
+            page = int(pm.group(1))
+        out[a] = page
+    return out
+
+
 def review_report(url):
     text = fetch_report_text(url)
     hits = find_literal_hits(text)
@@ -283,6 +295,9 @@ def review_report(url):
     result.setdefault("also_noticed", [])
     result["report_hash"] = hashlib.md5(text.encode("utf-8")).hexdigest()[:12]
     result["anchor_hashes"] = anchor_hashes(text)
+    pages = page_map(text)
+    for item in result.get("findings", []) + result.get("also_noticed", []):
+        item["page"] = pages.get(item.get("anchor"))
     return result
 
 
