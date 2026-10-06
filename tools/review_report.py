@@ -56,11 +56,11 @@ incomplete — flag it (fields on the same Insurance page may be grouped into on
 own photo belongs; (b) a literal admission such as "forgot photo" or "no photo". Do NOT flag stock images on legend, \
 cover, chapter/Baseline, educational or advisory pages, or captioned how-to diagrams. A component with a [PHOTO] near \
 it has its photo — never claim a photo is missing when a [PHOTO] is present.
-4. Empty content: a page with no content at all, only scaffolding such as a lone "+" (tag "Unused pages"); an \
-observation cell with a label but no issue, action, notes, and no [PHOTO] (tag "Missing info").
-5. Summary gaps (tag "Missing info"): a Summary entry that carries an icon but has no issue/action/notes; a serious \
-safety or liability item in the body that is absent from the Summary. Do NOT flag routine maintenance items that \
-simply aren't repeated in the Summary.
+4. Empty content: an observation cell with a label but no issue, action, notes, and no [PHOTO] (tag "Missing info"). \
+Empty "+" scaffold pages are found by code — never report them.
+5. Summary gaps (tag "Missing info"): a serious safety or liability item in the body that is absent from the \
+Summary. Do NOT flag routine maintenance items that simply aren't repeated in the Summary. Summary entries that have \
+an icon but no issue/action are found by code — never report them.
 6. Cover basics (tag "Missing info"): property address, inspector name, or inspection date missing, blank, or a \
 template default. A blank client/customer name is fine — never flag it.
 7. Icon vs. note disagree (tag "Mismatch"): an item whose severity icon says one level but its own note says another \
@@ -80,8 +80,8 @@ For every finding, classify it:
 insurance, summary, other ("other" only if truly nothing fits). Any finding about a field inside The Insurance \
 pages (including "####" ages, blank fields, n/a answers) is always area "insurance", even when the field describes \
 another system such as heating or the roof.
-- "tag": exactly one of the tags named above — "Missing info", "Missing photos", "Mismatch", "Unused pages", \
-"Placeholder text". Never invent another.
+- "tag": exactly one of the tags named above — "Missing info", "Missing photos", "Mismatch", "Placeholder text". \
+Never invent another.
 - "severity": use this fixed rule so results are consistent — "high": leftover sample contract/disclaimer, "DELETE \
 ME" pages, unfilled placeholders, safety items missing from the Summary; "medium": incomplete Insurance fields, \
 photo problems, blank Summary entries, icon/note or cross-section mismatches, missing cover info; "low": empty \
@@ -256,6 +256,108 @@ def page_map(text):
     return out
 
 
+_MEDIA_LINE_RE = re.compile(r"(?:\[ANCHOR:[^\]]+\]\s*)+(?:\[(?:PHOTO|STOCK-IMAGE)\]\s*)*")
+_PAGE_ANCHOR_RE = re.compile(r"\[ANCHOR:(page-\d+)\]")
+_SEV_ICON_RE = re.compile(r"\[([^\]]*(?:attention|observation)[^\]]*icon)\]", re.IGNORECASE)
+_AREA_WORDS = {"roof": "roof", "exterior": "exterior", "attic": "attic", "interior": "interior",
+               "kitchen": "kitchen", "laundromat": "laundry", "laundry": "laundry",
+               "bathroom": "bathroom", "mechanical": "mechanical"}
+
+
+def _anchor_or_media(line):
+    return bool(_MEDIA_LINE_RE.fullmatch(line))
+
+
+def _first_anchor(line):
+    m = _ANCHOR_RE.search(line)
+    return m.group(1) if m else None
+
+
+def _code_finding(area, tag, severity, section, issue, anchor, why, fix):
+    return {"section": section, "area": area, "tag": tag, "severity": severity, "issue": issue,
+            "anchor": anchor, "why_it_matters": why, "fix": fix, "source": "code"}
+
+
+def find_blank_summary_entries(text):
+    """Summary entries are '[icon] / Name: Issue: x / Action: y / Notes: z'. An entry with an
+    icon but no Issue or no Action tells the client nothing - pure pattern, no judgment."""
+    lines, out = _clean_lines(text), []
+    for i, l in enumerate(lines):
+        if not _SEV_ICON_RE.fullmatch(l) or i + 1 >= len(lines):
+            continue
+        name_line = lines[i + 1]
+        if ":" not in name_line or "Click Here" in name_line or name_line.startswith(("⚠", "◻", "Notes:", "Action:")):
+            continue
+        name = re.split(r"\s*:", name_line, maxsplit=1)[0].replace("⠀", "").strip()
+        issue = name_line.split("Issue:", 1)[1].strip(" ⠀") if "Issue:" in name_line else ""
+        j, action = i + 2, ""
+        while j < len(lines) and lines[j].startswith(("Action:", "Notes:")):
+            if lines[j].startswith("Action:"):
+                action = lines[j][7:].strip(" ⠀")
+            j += 1
+        if issue and action:
+            continue
+        anchor = None
+        for k in range(j, min(j + 3, len(lines))):
+            if _SEV_ICON_RE.fullmatch(lines[k]):
+                break
+            if _anchor_or_media(lines[k]):
+                anchor = _first_anchor(lines[k])
+                break
+        icon = _SEV_ICON_RE.fullmatch(l).group(1)
+        missing = "Issue or Action" if not issue and not action else ("Action" if issue else "Issue")
+        out.append(_code_finding(
+            "summary", "Missing info", "medium", f"The Summary — {name}",
+            f"The Summary entry for '{name}' carries an [{icon}] but has no {missing} filled in.",
+            anchor, "Flagged item gives the client nothing to act on", f"Add the {missing.lower()}, or remove the entry"))
+    return out
+
+
+def find_empty_pages(text):
+    """A page whose only content is its header, page number and a lone '+' is an unused scaffold."""
+    lines, out = _clean_lines(text), []
+    starts = [i for i, l in enumerate(lines) if _PAGE_ANCHOR_RE.fullmatch(l)]
+    for n, s in enumerate(starts):
+        e = starts[n + 1] if n + 1 < len(starts) else len(lines)
+        block = lines[s + 1:e]
+        scaffold = [b for b in block if b == "+" or re.fullmatch(r".{1,40} \+", b)]
+        rest = [b for b in block if b not in scaffold and not b.isdigit() and not _anchor_or_media(b)]
+        has_media = any(_anchor_or_media(b) and ("[PHOTO]" in b or "[STOCK-IMAGE]" in b) for b in block)
+        if scaffold and not rest and not has_media:
+            page = _PAGE_ANCHOR_RE.fullmatch(lines[s]).group(1)
+            header = next((b for b in scaffold if b != "+"), "")
+            area = next((v for k, v in _AREA_WORDS.items() if k in header.lower()), "other")
+            num = page.split("-")[1]
+            out.append(_code_finding(
+                area, "Unused pages", "low", f"{header.rstrip(' +') or 'Report'} — page {num}",
+                f"Page {num}{' (' + header + ')' if header else ''} contains only a lone '+' — no observations, notes, or photos.",
+                page, "Empty page looks unfinished to the client", "Delete the empty page"))
+    return out
+
+
+def find_code_findings(text):
+    """Findings that are pure pattern matches: built in code with fixed wording so they come out
+    identical on every run and cost no model output tokens."""
+    return find_blank_summary_entries(text) + find_empty_pages(text)
+
+
+def _drop_code_duplicates(claude_items, code_items):
+    """If the model reports something code already reported, keep only the code version."""
+    def norm(s):
+        return re.sub(r"\W+", "", s).lower()
+    names = {norm(re.search(r"'([^']+)'", c["issue"]).group(1))
+             for c in code_items if c["area"] == "summary" and re.search(r"'([^']+)'", c["issue"])}
+    kept = []
+    for it in claude_items:
+        if it.get("tag") == "Unused pages":
+            continue
+        quoted = {norm(q) for q in re.findall(r"'([^']{2,60})'", it.get("issue", ""))}
+        if it.get("area") == "summary" and it.get("tag") == "Missing info" and quoted & names:
+            continue
+        kept.append(it)
+    return kept
+
+
 def review_report(url):
     text = fetch_report_text(url)
     hits = find_literal_hits(text)
@@ -274,6 +376,10 @@ def review_report(url):
                        "'Garage Systems' may appear here - ignore those, they have no value of their own; every "
                        "real field listed is blank and must be named in your Insurance finding(s)):" + "\n" +
                        "\n".join(f"- {b}" for b in blanks) + "\n" + "\n")
+    code_items = find_code_findings(text)
+    if code_items:
+        hits_block += ("ALREADY REPORTED BY CODE (do NOT report these again anywhere, including Also noticed):\n"
+                       + "\n".join(f"- {c['section']}" for c in code_items) + "\n\n")
     client = anthropic.Anthropic(timeout=300.0, max_retries=1)
     # Streamed rather than a single blocking create() call — a non-streamed request
     # that runs long risks a client-side read timeout even while the server is still
@@ -293,6 +399,8 @@ def review_report(url):
         raw = raw.rsplit("```", 1)[0]
     result = json.loads(raw.strip())
     result.setdefault("also_noticed", [])
+    result["findings"] = _drop_code_duplicates(result.get("findings", []), code_items) + code_items
+    result["also_noticed"] = _drop_code_duplicates(result["also_noticed"], code_items)
     result["report_hash"] = hashlib.md5(text.encode("utf-8")).hexdigest()[:12]
     result["anchor_hashes"] = anchor_hashes(text)
     pages = page_map(text)
