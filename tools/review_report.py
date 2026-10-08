@@ -51,16 +51,20 @@ or AI-prompt instructions meant for the inspector, not the client.
 2. Incomplete Insurance section (tag "Missing info"): every field in "The Insurance" checklist must have a \
 checkbox-style prefix (◻️ or ⚠️) followed by a real value. A bare "n/a" or a blank field with no prefix/value is \
 incomplete — flag it (fields on the same Insurance page may be grouped into one finding that names them).
-3. Photos (tag "Missing photos"): (a) a [STOCK-IMAGE] sitting on a specific component or observation (e.g. "Toilet", \
-"Kitchen Outlet(s)") with no [PHOTO] belonging to that same component — an example picture left where the inspector's \
-own photo belongs; (b) a literal admission such as "forgot photo" or "no photo". Do NOT flag stock images on legend, \
-cover, chapter/Baseline, educational or advisory pages, or captioned how-to diagrams. A component with a [PHOTO] near \
-it has its photo — never claim a photo is missing when a [PHOTO] is present.
+3. Photos (tag "Missing photos"): only a literal admission such as "forgot photo" or "no photo". You cannot see \
+the pictures, so a [STOCK-IMAGE] sitting on a component is NOT a finding — it may be an informative diagram that \
+belongs there. If a [STOCK-IMAGE] sits on a specific component or observation (e.g. "Toilet", "Kitchen Outlet(s)") \
+with no [PHOTO] of its own, mention it only in "also_noticed", worded as a suggestion: "This looks like a stock \
+image — if it isn't meant as an explanatory diagram, replace it with your own photo." Never mention stock images on \
+legend, cover, chapter/Baseline, educational or advisory pages, or captioned how-to diagrams. Never claim a photo is \
+missing when a [PHOTO] is present.
 4. Empty content: an observation cell with a label but no issue, action, notes, and no [PHOTO] (tag "Missing info"). \
 Empty "+" scaffold pages are found by code — never report them.
 5. Summary gaps (tag "Missing info"): a serious safety or liability item in the body that is absent from the \
-Summary. Do NOT flag routine maintenance items that simply aren't repeated in the Summary. Summary entries that have \
-an icon but no issue/action are found by code — never report them.
+Summary. Do NOT flag routine maintenance items that simply aren't repeated in the Summary. Also flag a Summary \
+entry that carries a severity icon but has no descriptive content at all (just an icon and a name). An entry is NOT \
+blank if it describes the problem in any form — "Issue:"/"Action:" labels, or a plain sentence under the name; only \
+flag one when there is genuinely nothing there.
 6. Cover basics (tag "Missing info"): property address, inspector name, or inspection date missing, blank, or a \
 template default. A blank client/customer name is fine — never flag it.
 7. Icon vs. note disagree (tag "Mismatch"): an item whose severity icon says one level but its own note says another \
@@ -215,35 +219,6 @@ def find_icon_note_mismatches(text):
     return out
 
 
-def find_insurance_blanks(text):
-    """Insurance fields are 'Label' followed by a value starting with a checkbox mark. A label
-    followed directly by another label (or a bare 'n/a') has no value. Only the Insurance
-    pages are scanned (each starts with 'the' / 'insurance')."""
-    lines = _clean_lines(text)
-    seq, in_ins = [], False
-    for i, l in enumerate(lines):
-        if re.fullmatch(r"\[ANCHOR:page-[^\]]+\]", l):
-            head = [x.lower() for x in lines[i + 1:i + 3]]
-            in_ins = head == ["the", "insurance"]
-            continue
-        if in_ins and l.startswith("[Inspectagram]"):
-            break
-        if not in_ins or _ANCHOR_RE.fullmatch(l) or l.lower() in ("the", "insurance") or l.isdigit():
-            continue
-        seq.append(l)
-    blanks = []
-    for i, l in enumerate(seq):
-        if l.startswith(("◻", "⚠")) or l.lower() == "n/a":
-            continue
-        nxt = seq[i + 1] if i + 1 < len(seq) else ""
-        is_heading = bool(re.search(r"(Overview|System|Systems)$", l)) or l == "Kitchen & Bathroom"
-        if nxt.lower() == "n/a":
-            blanks.append(f"{l} (bare 'n/a')")
-        elif not nxt.startswith(("◻", "⚠")) and not is_heading:
-            blanks.append(l)
-    return blanks
-
-
 def page_map(text):
     """anchor -> report page number, using the nearest page-N anchor at or before it."""
     out, page = {}, None
@@ -278,41 +253,6 @@ def _code_finding(area, tag, severity, section, issue, anchor, why, fix):
             "anchor": anchor, "why_it_matters": why, "fix": fix, "source": "code"}
 
 
-def find_blank_summary_entries(text):
-    """Summary entries are '[icon] / Name: Issue: x / Action: y / Notes: z'. An entry with an
-    icon but no Issue or no Action tells the client nothing - pure pattern, no judgment."""
-    lines, out = _clean_lines(text), []
-    for i, l in enumerate(lines):
-        if not _SEV_ICON_RE.fullmatch(l) or i + 1 >= len(lines):
-            continue
-        name_line = lines[i + 1]
-        if ":" not in name_line or "Click Here" in name_line or name_line.startswith(("⚠", "◻", "Notes:", "Action:")):
-            continue
-        name = re.split(r"\s*:", name_line, maxsplit=1)[0].replace("⠀", "").strip()
-        issue = name_line.split("Issue:", 1)[1].strip(" ⠀") if "Issue:" in name_line else ""
-        j, action = i + 2, ""
-        while j < len(lines) and lines[j].startswith(("Action:", "Notes:")):
-            if lines[j].startswith("Action:"):
-                action = lines[j][7:].strip(" ⠀")
-            j += 1
-        if issue and action:
-            continue
-        anchor = None
-        for k in range(j, min(j + 3, len(lines))):
-            if _SEV_ICON_RE.fullmatch(lines[k]):
-                break
-            if _anchor_or_media(lines[k]):
-                anchor = _first_anchor(lines[k])
-                break
-        icon = _SEV_ICON_RE.fullmatch(l).group(1)
-        missing = "Issue or Action" if not issue and not action else ("Action" if issue else "Issue")
-        out.append(_code_finding(
-            "summary", "Missing info", "medium", f"The Summary — {name}",
-            f"The Summary entry for '{name}' carries an [{icon}] but has no {missing} filled in.",
-            anchor, "Flagged item gives the client nothing to act on", f"Add the {missing.lower()}, or remove the entry"))
-    return out
-
-
 def find_empty_pages(text):
     """A page whose only content is its header, page number and a lone '+' is an unused scaffold."""
     lines, out = _clean_lines(text), []
@@ -338,24 +278,14 @@ def find_empty_pages(text):
 def find_code_findings(text):
     """Findings that are pure pattern matches: built in code with fixed wording so they come out
     identical on every run and cost no model output tokens."""
-    return find_blank_summary_entries(text) + find_empty_pages(text)
+    return find_empty_pages(text)
 
 
 def _drop_code_duplicates(claude_items, code_items):
-    """If the model reports something code already reported, keep only the code version."""
-    def norm(s):
-        return re.sub(r"\W+", "", s).lower()
-    names = {norm(re.search(r"'([^']+)'", c["issue"]).group(1))
-             for c in code_items if c["area"] == "summary" and re.search(r"'([^']+)'", c["issue"])}
-    kept = []
-    for it in claude_items:
-        if it.get("tag") == "Unused pages":
-            continue
-        quoted = {norm(q) for q in re.findall(r"'([^']{2,60})'", it.get("issue", ""))}
-        if it.get("area") == "summary" and it.get("tag") == "Missing info" and quoted & names:
-            continue
-        kept.append(it)
-    return kept
+    """Empty '+' pages are reported by code; drop any copy the model adds."""
+    if not code_items:
+        return claude_items
+    return [it for it in claude_items if it.get("tag") != "Unused pages"]
 
 
 def review_report(url):
@@ -370,12 +300,6 @@ def review_report(url):
         hits_block += ("SUMMARY ICON/NOTE MISMATCHES (found by code, each is confirmed - report every one):" + "\n" +
                        "\n".join(f"- {m['name']}: shows [{m['icon']}] but its note starts with \"{m['note']}\"" for m in mism)
                        + "\n" + "\n")
-    blanks = find_insurance_blanks(text)
-    if blanks:
-        hits_block += ("INSURANCE FIELDS WITH NO VALUE (found by code; group headings such as 'Roof System' or "
-                       "'Garage Systems' may appear here - ignore those, they have no value of their own; every "
-                       "real field listed is blank and must be named in your Insurance finding(s)):" + "\n" +
-                       "\n".join(f"- {b}" for b in blanks) + "\n" + "\n")
     code_items = find_code_findings(text)
     if code_items:
         hits_block += ("ALREADY REPORTED BY CODE (do NOT report these again anywhere, including Also noticed):\n"
