@@ -1,4 +1,4 @@
-"""Nany demo web app — paste a report URL, watch Nany review it live.
+"""Nani demo web app — paste a report URL, watch Nani review it live.
 
 Built for recording a demo video: a thin Flask front-end over the same
 review_report() used by the CLI tool, so what you record is the real
@@ -33,7 +33,7 @@ def api_review():
     try:
         result = review_report(url)
     except Exception as exc:
-        return jsonify({"error": f"Nany couldn't finish that review: {exc}"}), 502
+        return jsonify({"error": f"Nani couldn't finish that review: {exc}"}), 502
     result["source_url"] = url
     return jsonify(result)
 

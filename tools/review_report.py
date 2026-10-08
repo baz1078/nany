@@ -1,4 +1,4 @@
-"""Nany: review a new inspector's Inspectagram report and flag what was left unfinished.
+"""Nani: review a new inspector's Inspectagram report and flag what was left unfinished.
 
 Usage:
     python review_report.py <report_url> [--out-dir .tmp]
@@ -30,7 +30,7 @@ MODEL = "claude-sonnet-4-6"
 AREA_VALUES = ["cover", "agreement", "roof", "exterior", "attic", "interior", "kitchen",
                "laundry", "bathroom", "mechanical", "insurance", "summary", "other"]
 
-SYSTEM_PROMPT = """You are Nany, a completeness checker for home inspection reports generated on the Inspectagram \
+SYSTEM_PROMPT = """You are Nani, a completeness checker for home inspection reports generated on the Inspectagram \
 platform. You review a new/trainee inspector's finished report and point out what was left unfinished, left over, or \
 incomplete before it goes to a client. You are NOT judging tone, wording, spelling, or professional opinions.
 
@@ -50,7 +50,9 @@ template only"); unfilled placeholders ("####", "[INSERT ...]", "TBD", "TODO", L
 or AI-prompt instructions meant for the inspector, not the client.
 2. Incomplete Insurance section (tag "Missing info"): every field in "The Insurance" checklist must have a \
 checkbox-style prefix (◻️ or ⚠️) followed by a real value. A bare "n/a" or a blank field with no prefix/value is \
-incomplete — flag it (fields on the same Insurance page may be grouped into one finding that names them).
+incomplete — flag it. Report ALL blank or bare-"n/a" Insurance fields together in ONE "Missing info" finding that \
+names every one of those fields (do not split them by page or section, and never one finding per field). \
+Contradictions and "####" placeholders stay separate findings.
 3. Photos (tag "Missing photos"): only a literal admission such as "forgot photo" or "no photo". You cannot see \
 the pictures, so a [STOCK-IMAGE] sitting on a component is NOT a finding — it may be an informative diagram that \
 belongs there. If a [STOCK-IMAGE] sits on a specific component or observation (e.g. "Toilet", "Kitchen Outlet(s)") \
@@ -63,7 +65,9 @@ Empty "+" scaffold pages are found by code — never report them.
 5. Summary gaps (tag "Missing info"): a serious safety or liability item in the body that is absent from the \
 Summary. Do NOT flag routine maintenance items that simply aren't repeated in the Summary. Also flag a Summary \
 entry that carries a severity icon but has no descriptive content at all (just an icon and a name). An entry is NOT \
-blank if it describes the problem in any form — "Issue:"/"Action:" labels, or a plain sentence under the name; only \
+blank if it describes the problem in any form — "Issue:"/"Action:" labels, or a plain sentence under the name. If \
+several blank entries share the same name (for example "Additional Observations" under many chapters), report them \
+as ONE finding that lists the chapters. Different names stay separate findings. Only \
 flag one when there is genuinely nothing there.
 6. Cover basics (tag "Missing info"): property address, inspector name, or inspection date missing, blank, or a \
 template default. A blank client/customer name is fine — never flag it.
@@ -75,6 +79,7 @@ Equipment, Cooling, Egress Windows, Garage fire separation), search the body and
 document it as missing, absent, damaged, or a risk (e.g. Insurance says GFCI's present but a body/Summary entry says \
 "No GFCI protection"), that is a contradiction. Also flag two different inspection dates on the cover (tag \
 "Mismatch", not "Missing info").
+Missing locations in the Interior and Exterior Summary are found by code — never report them.
 
 NEVER FLAG: tone, alarmist or unprofessional wording, boilerplate phrasing, negotiation advice, spelling, typos, or \
 grammar, a blank client name, labeled reference/how-to diagrams. These are out of scope, even when obvious.
@@ -89,7 +94,7 @@ Never invent another.
 - "severity": use this fixed rule so results are consistent — "high": leftover sample contract/disclaimer, "DELETE \
 ME" pages, unfilled placeholders, safety items missing from the Summary; "medium": incomplete Insurance fields, \
 photo problems, blank Summary entries, icon/note or cross-section mismatches, missing cover info; "low": empty \
-minor cells and unused pages.
+minor cells, unused pages, and missing locations.
 
 CODE-DETECTED MATCHES: the user message may list literal matches found by a text scan (e.g. "DELETE ME", "####"). \
 Each one is confirmed present — include every one in your findings (matches of the same kind on the same page may \
@@ -219,6 +224,35 @@ def find_icon_note_mismatches(text):
     return out
 
 
+def _find_insurance_blanks_raw(text):
+    """Insurance fields are 'Label' followed by a value starting with a checkbox mark. A label
+    followed directly by another label (or a bare 'n/a') has no value. Only the Insurance
+    pages are scanned (each starts with 'the' / 'insurance')."""
+    lines = _clean_lines(text)
+    seq, in_ins = [], False
+    for i, l in enumerate(lines):
+        if re.fullmatch(r"\[ANCHOR:page-[^\]]+\]", l):
+            head = [x.lower() for x in lines[i + 1:i + 3]]
+            in_ins = head == ["the", "insurance"]
+            continue
+        if in_ins and l.startswith("[Inspectagram]"):
+            break
+        if not in_ins or _ANCHOR_RE.fullmatch(l) or l.lower() in ("the", "insurance") or l.isdigit():
+            continue
+        seq.append(l)
+    blanks = []
+    for i, l in enumerate(seq):
+        if l.startswith(("◻", "⚠")) or l.lower() == "n/a":
+            continue
+        nxt = seq[i + 1] if i + 1 < len(seq) else ""
+        is_heading = bool(re.search(r"(Overview|System|Systems)$", l)) or l == "Kitchen & Bathroom"
+        if nxt.lower() == "n/a":
+            blanks.append(f"{l} (bare 'n/a')")
+        elif not nxt.startswith(("◻", "⚠")) and not is_heading:
+            blanks.append(l)
+    return blanks
+
+
 def page_map(text):
     """anchor -> report page number, using the nearest page-N anchor at or before it."""
     out, page = {}, None
@@ -253,6 +287,71 @@ def _code_finding(area, tag, severity, section, issue, anchor, why, fix):
             "anchor": anchor, "why_it_matters": why, "fix": fix, "source": "code"}
 
 
+_INS_HEADING_RE = re.compile(r"(Overview|System|Systems|Q&A)$|^Kitchen & Bathroom$")
+
+
+def find_insurance_blanks(text):
+    """Insurance fields with no value, for the model to write up. Guarded so an unfamiliar report
+    layout can't flood the prompt: group headings are dropped, and an implausibly long list is
+    ignored entirely (the model then judges the Insurance page on its own)."""
+    out = []
+    for b in _find_insurance_blanks_raw(text):
+        label = b.split(" (")[0]
+        if len(label) > 50 or _INS_HEADING_RE.search(label):
+            continue
+        out.append(b)
+    return out if len(out) <= 25 else []
+
+
+def find_blank_summary_entries(text):
+    """Summary entries with an icon and nothing under them (or an Issue but no Action). Only the
+    exact 'empty' shapes count - an entry written as a plain sentence is never flagged, so
+    report templates that don't use Issue:/Action: labels can't cause false alarms."""
+    lines, found = _clean_lines(text), []
+    for i, l in enumerate(lines):
+        icon_m = _SEV_ICON_RE.fullmatch(l)
+        if not icon_m or i + 1 >= len(lines):
+            continue
+        name_line = lines[i + 1]
+        if ":" not in name_line or "Click Here" in name_line or name_line.startswith(("⚠", "◻", "Notes:", "Action:")):
+            continue
+        name = re.split(r"\s*:", name_line, maxsplit=1)[0].replace("⠀", "").strip()
+        after_name = name_line.split(":", 1)[1].strip(" ⠀")
+        j, action, notes = i + 2, False, False
+        while j < len(lines) and lines[j].startswith(("Action:", "Notes:")):
+            val = lines[j].split(":", 1)[1].strip(" ⠀")
+            action = action or (lines[j].startswith("Action:") and bool(val))
+            notes = notes or (lines[j].startswith("Notes:") and bool(val))
+            j += 1
+        nxt = lines[j] if j < len(lines) else ""
+        sentence_follows = bool(nxt) and not _anchor_or_media(nxt) and not _SEV_ICON_RE.fullmatch(nxt) and not _chapter_of(nxt)
+        if not after_name and j == i + 2 and not sentence_follows:
+            kind = "nothing"
+        elif "Issue:" in name_line and after_name != "Issue:" and not action and not notes and not sentence_follows:
+            kind = "no Action"
+        else:
+            continue
+        anchor = _first_anchor(nxt) if _anchor_or_media(nxt) else None
+        found.append((name, icon_m.group(1), kind, anchor))
+    out, by_name = [], {}
+    for item in found:
+        by_name.setdefault((item[0], item[2]), []).append(item)
+    for (name, kind), items in by_name.items():
+        icon, anchor = items[0][1], next((a for _, _, _, a in items if a), None)
+        if len(items) > 1:
+            issue = f"{len(items)} Summary entries named '{name}' carry a severity icon but have nothing under them."
+            fix = "Fill them in, or remove the empty entries"
+        elif kind == "nothing":
+            issue = f"The Summary entry for '{name}' carries an [{icon}] but has nothing under it — no issue, action, or notes."
+            fix = "Add the issue and action, or remove the entry"
+        else:
+            issue = f"The Summary entry for '{name}' carries an [{icon}] and an Issue but no Action."
+            fix = "Add the action, or remove the entry"
+        out.append(_code_finding("summary", "Missing info", "medium", f"The Summary — {name}", issue, anchor,
+                                 "Flagged item gives the client nothing to act on", fix))
+    return out
+
+
 def find_empty_pages(text):
     """A page whose only content is its header, page number and a lone '+' is an unused scaffold."""
     lines, out = _clean_lines(text), []
@@ -275,17 +374,72 @@ def find_empty_pages(text):
     return out
 
 
+_CHAPTER_NAMES = {"roof": "Roof", "exterior": "Exterior", "attic": "Attic", "interior": "Interior",
+                  "kitchen": "Kitchen", "laundromat": "Laundry", "laundry": "Laundry", "bathroom": "Bathroom",
+                  "mechanical": "Mechanical", "garage": "Garage"}
+_LOC_RE = re.compile(r"\bL:\s*(?!Click Here)\S")
+
+
+def _chapter_of(line):
+    """Summary chapter headings are short standalone lines such as 'Interior' or 'Exterior System'."""
+    if len(line) > 28:
+        return None
+    key = re.sub(r"\s*\+$", "", line).lower()
+    key = re.sub(r"\s*\((?:cont|continued)[^)]*\)\s*$", "", key)
+    key = re.sub(r"\s+system$", "", key)
+    return _CHAPTER_NAMES.get(key)
+
+
+def find_missing_locations(text):
+    """Interior and Exterior Summary entries should say where the problem is ('L: Office, Kitchen').
+    One grouped finding per chapter, listing the entries with no location."""
+    lines, chapter, missing = _clean_lines(text), None, {}
+    for i, l in enumerate(lines):
+        chapter = _chapter_of(l) or chapter
+        if not _SEV_ICON_RE.fullmatch(l) or i + 1 >= len(lines):
+            continue
+        name_line = lines[i + 1]
+        if ":" not in name_line or "Click Here" in name_line or name_line.startswith(("⚠", "◻", "Notes:", "Action:")):
+            continue
+        j, body = i + 2, [name_line]
+        while j < len(lines) and not _SEV_ICON_RE.fullmatch(lines[j]) and not _anchor_or_media(lines[j]) and not _chapter_of(lines[j]):
+            body.append(lines[j])
+            j += 1
+        if chapter in ("Interior", "Exterior") and not _LOC_RE.search(" ".join(body)):
+            name = re.split(r"\s*:", name_line, maxsplit=1)[0].replace("⠀", "").strip()
+            anchor = _first_anchor(lines[j]) if j < len(lines) and _anchor_or_media(lines[j]) else None
+            missing.setdefault(chapter, []).append((name, anchor))
+    out = []
+    for chapter, items in missing.items():
+        names = [f"'{n}'" for n, _ in items[:8]] + ([f"and {len(items) - 8} more"] if len(items) > 8 else [])
+        out.append(_code_finding(
+            chapter.lower(), "Missing location", "low", f"{chapter} — Summary",
+            f"{len(items)} {chapter} Summary {'entry has' if len(items) == 1 else 'entries have'} no location (L:): " + ", ".join(names) + ".",
+            next((a for _, a in items if a), None),
+            "Client can't tell where the problem is", "Add an 'L:' location to each entry"))
+    return out
+
+
 def find_code_findings(text):
     """Findings that are pure pattern matches: built in code with fixed wording so they come out
     identical on every run and cost no model output tokens."""
-    return find_empty_pages(text)
+    return find_blank_summary_entries(text) + find_empty_pages(text) + find_missing_locations(text)
 
 
 def _drop_code_duplicates(claude_items, code_items):
-    """Empty '+' pages are reported by code; drop any copy the model adds."""
-    if not code_items:
-        return claude_items
-    return [it for it in claude_items if it.get("tag") != "Unused pages"]
+    """Empty pages, missing locations and empty Summary entries are reported by code; drop any copy the model adds."""
+    def norm(s):
+        return re.sub(r"\W+", "", s).lower()
+    names = {norm(m) for c in code_items if c["area"] == "summary" for m in re.findall(r"'([^']{2,60})'", c["issue"])}
+    kept = []
+    for it in claude_items:
+        if it.get("tag") in ("Unused pages", "Missing location"):
+            continue
+        quoted = {norm(q) for q in re.findall(r"'([^']{2,60})'", it.get("issue", ""))}
+        if it.get("area") == "summary" and it.get("tag") == "Missing info" and quoted & names:
+            continue
+        kept.append(it)
+    return kept
 
 
 def review_report(url):
@@ -300,6 +454,12 @@ def review_report(url):
         hits_block += ("SUMMARY ICON/NOTE MISMATCHES (found by code, each is confirmed - report every one):" + "\n" +
                        "\n".join(f"- {m['name']}: shows [{m['icon']}] but its note starts with \"{m['note']}\"" for m in mism)
                        + "\n" + "\n")
+    blanks = find_insurance_blanks(text)
+    if blanks:
+        hits_block += ("INSURANCE FIELDS WITH NO VALUE (found by code; if an item is clearly not a checklist field, "
+                       "such as a heading or an address, ignore it; every real field listed is blank and must be named "
+                       "in your ONE Insurance 'Missing info' finding):" + "\n" +
+                       "\n".join(f"- {b}" for b in blanks) + "\n" + "\n")
     code_items = find_code_findings(text)
     if code_items:
         hits_block += ("ALREADY REPORTED BY CODE (do NOT report these again anywhere, including Also noticed):\n"
@@ -335,7 +495,7 @@ def review_report(url):
 
 def format_admin_report(url, result):
     lines = []
-    lines.append(f"NANY REVIEW — {result.get('property_address') or 'address not found'}")
+    lines.append(f"NANI REVIEW — {result.get('property_address') or 'address not found'}")
     lines.append(f"Client: {result.get('client_name') or 'not found'}")
     lines.append(f"Source: {url}")
     lines.append("")
@@ -369,7 +529,7 @@ def format_admin_report(url, result):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Nany: review an Inspectagram report")
+    parser = argparse.ArgumentParser(description="Nani: review an Inspectagram report")
     parser.add_argument("url", help="Public/admin URL to the Inspectagram report")
     parser.add_argument("--out-dir", default=os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".tmp"))
     args = parser.parse_args()
