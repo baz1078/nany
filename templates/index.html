@@ -58,7 +58,7 @@
   .pdf-btn:hover{border-color:var(--accent);color:var(--accent-ink);}
   .pdf-btn[hidden], .pdf-btns[hidden]{display:none;}
   .pdf-btns{display:inline-flex;gap:8px;}
-  .score-pages{display:none;font-size:0.74rem;font-weight:500;color:var(--ink-faint);white-space:nowrap;}
+  .score-pages{display:none;font-size:0.74rem;font-weight:500;color:var(--ink-faint);min-width:0;}
 
   /* ---- run panel ---- */
   .run-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:22px;box-shadow:var(--shadow);margin-bottom:18px;}
@@ -114,10 +114,10 @@
 
   /* ---- scorecard: the main "quick read" view ---- */
   .scorecard{display:flex;flex-direction:column;border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--surface);box-shadow:var(--shadow);}
-  .score-head{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:10px;padding:10px 14px;background:var(--surface-2);font-family:var(--font-mono);font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--ink-faint);font-weight:600;}
+  .score-head{display:grid;grid-template-columns:1.3fr 2fr;gap:10px;padding:10px 14px;background:var(--surface-2);font-family:var(--font-mono);font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--ink-faint);font-weight:600;}
   .score-row{border-top:1px solid var(--border);}
   .score-row:first-child{border-top:none;}
-  .score-main{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:10px;padding:12px 14px;align-items:center;}
+  .score-main{display:grid;grid-template-columns:1.3fr 2fr;gap:10px;padding:12px 14px;align-items:center;}
   .score-row.clickable .score-main{cursor:pointer;}
   .score-row.clickable .score-main:hover{background:var(--surface-2);}
   .score-name-wrap{display:flex;align-items:center;gap:8px;min-width:0;}
@@ -128,7 +128,7 @@
   .status-dot.sev-medium{background:var(--sev-medium);}
   .status-dot.sev-low{background:var(--sev-low);}
   .status-dot.clean{background:var(--good);}
-  .score-name{font-weight:700;font-size:0.92rem;color:var(--ink);overflow:hidden;text-overflow:ellipsis;}
+  .score-name{font-weight:700;font-size:0.92rem;color:var(--ink);white-space:nowrap;flex:none;}
   .score-col{display:flex;flex-wrap:wrap;gap:4px;align-items:center;}
   .col-label{display:none;font-family:var(--font-mono);font-size:0.62rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--ink-faint);margin-right:2px;}
   .score-tag{display:inline-block;font-size:0.76rem;font-weight:600;padding:2px 8px;border-radius:5px;}
@@ -334,7 +334,7 @@
     <div class="tip">Tap a link and land in the report? Tap <b>?</b> in Inspectagram again — your results are saved, no re-run needed.</div>
     <div class="section-label">Section by section</div>
     <div class="scorecard" id="sections">
-      <div class="score-head"><div>Section</div><div>Review</div><div>Clean</div></div>
+      <div class="score-head"><div>Section</div><div>Review</div></div>
     </div>
 
     <div class="also" id="also" hidden>
@@ -548,7 +548,6 @@ function render(data){
             <span class="score-name">${label}</span>
           </div>
           <div class="score-col"><span class="score-clean-badge">✓ Clean</span></div>
-          <div class="score-col"><span class="score-dash">—</span></div>
         </div>
       `;
       sectionsEl.appendChild(row);
@@ -562,10 +561,10 @@ function render(data){
       const t = TAG_BUCKET[f.tag] ? f.tag : 'Missing info';
       (byTag[t] = byTag[t] || []).push(f);
     });
-    const reviewTags = [], cleanTags = [];
+    const allTags = [];
     Object.entries(byTag).forEach(([tag, fs]) => {
       const entry = {tag, severity: worstSeverity(fs)};
-      (TAG_BUCKET[tag] === 'clean' ? cleanTags : reviewTags).push(entry);
+      allTags.push(entry);
     });
 
     row.innerHTML = `
@@ -576,8 +575,7 @@ function render(data){
           <span class="score-name">${label}</span>
           ${pagesLabel(items)}
         </div>
-        <div class="score-col">${reviewTags.length ? '<span class="col-label">Review</span>' : ''}${tagCellHtml(reviewTags)}</div>
-        <div class="score-col">${cleanTags.length ? '<span class="col-label">Clean</span>' : ''}${tagCellHtml(cleanTags)}</div>
+        <div class="score-col"><span class="col-label">Review</span>${tagCellHtml(allTags)}</div>
       </div>
       <div class="score-detail">
         ${items.map(f => {

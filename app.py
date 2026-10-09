@@ -12,7 +12,7 @@ Then open http://127.0.0.1:5057
 import os
 import sys
 
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, make_response, render_template, request
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from tools.review_report import review_report
@@ -22,7 +22,9 @@ app = Flask(__name__)
 
 @app.route("/")
 def index():
-    return render_template("index.html")
+    resp = make_response(render_template("index.html"))
+    resp.headers["Cache-Control"] = "no-store"  # every visit gets the latest page, even in in-app browsers
+    return resp
 
 
 @app.route("/api/review", methods=["POST"])
