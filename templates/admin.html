@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Nani Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{--navy:#102334;--ink:#1c2a38;--ink-soft:#5b6b7a;--ink-faint:#8a97a4;--line:#e2e8ee;--bg:#f6f8fa;--card:#fff;--teal:#2a9d8f;--lime:#CCE241;--red:#b3261e;--green:#1e7a46;}
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,-apple-system,"Segoe UI",sans-serif;}
+  .wrap{max-width:900px;margin:0 auto;padding:20px 16px 40px;}
+  .top{background:var(--navy);border-radius:14px;padding:16px 20px;display:flex;justify-content:space-between;align-items:center;}
+  .kicker{color:var(--lime);font-size:.7rem;letter-spacing:.18em;text-transform:uppercase;font-weight:700;}
+  .top h1{margin:2px 0 0;color:#fff;font-size:1.7rem;letter-spacing:-.02em;}
+  .top small{color:#c9d3dd;font-size:.78rem;}
+  .tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:16px 0;}
+  .tile{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;}
+  .tile small{display:block;color:var(--ink-soft);font-size:.78rem;}
+  .tile strong{display:block;font-size:1.7rem;font-weight:700;margin-top:2px;}
+  .tile em{font-style:normal;color:var(--ink-faint);font-size:.78rem;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:16px;}
+  .card h2{margin:0 0 10px;font-size:.78rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);}
+  .bars{display:flex;align-items:flex-end;gap:6px;height:110px;border-bottom:1px solid var(--line);}
+  .bar{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;}
+  .bar i{display:block;width:100%;background:var(--teal);border-radius:3px 3px 0 0;min-height:2px;}
+  .bar i.zero{background:var(--line);}
+  .bar b{font-size:.68rem;color:var(--ink-soft);font-weight:500;margin-bottom:2px;}
+  .lab{display:flex;gap:6px;margin-top:4px;}
+  .lab span{flex:1;text-align:center;font-size:.68rem;color:var(--ink-faint);}
+  .tbl{overflow-x:auto;}
+  table{width:100%;border-collapse:collapse;font-size:.85rem;min-width:520px;}
+  th{text-align:left;font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);padding:6px 8px;}
+  td{padding:8px;border-top:1px solid var(--line);}
+  .pill{display:inline-block;font-size:.72rem;font-weight:600;padding:1px 9px;border-radius:99px;background:#e6f4ea;color:var(--green);}
+  .pill.bad{background:#fdecea;color:var(--red);}
+  .empty{color:var(--ink-faint);font-size:.88rem;padding:10px 0;}
+  .note{color:var(--ink-faint);font-size:.76rem;}
+  @media(max-width:600px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr));}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div><div class="kicker">Admin</div><h1>Nani</h1></div>
+    <small>Times in {{ s.tz }}</small>
+  </div>
+
+  <div class="tiles">
+    <div class="tile"><small>Today</small><strong>{{ s.tiles.today }}</strong><em>about ${{ '%.2f'|format(s.cost.today) }}</em></div>
+    <div class="tile"><small>This week</small><strong>{{ s.tiles.week }}</strong><em>about ${{ '%.2f'|format(s.cost.week) }}</em></div>
+    <div class="tile"><small>This month</small><strong>{{ s.tiles.month }}</strong><em>about ${{ '%.2f'|format(s.cost.month) }}</em></div>
+    <div class="tile"><small>All time</small><strong>{{ s.tiles.all }}</strong><em>about ${{ '%.2f'|format(s.cost.all) }}</em></div>
+  </div>
+
+  <div class="card">
+    <h2>Reports per day, last 14 days</h2>
+    {% set peak = s.days | map(attribute='count') | max %}
+    <div class="bars">
+      {% for d in s.days %}
+      <div class="bar">{% if d.count %}<b>{{ d.count }}</b>{% endif %}<i class="{{ '' if d.count else 'zero' }}" style="height:{{ (d.count / peak * 80) if peak else 0 }}%"></i></div>
+      {% endfor %}
+    </div>
+    <div class="lab">{% for d in s.days %}<span>{{ d.label }}</span>{% endfor %}</div>
+  </div>
+
+  <div class="card">
+    <h2>Recent runs</h2>
+    {% if s.recent %}
+    <div class="tbl"><table>
+      <tr><th>Time</th><th>Property</th><th>Findings</th><th>Length</th><th>Status</th></tr>
+      {% for r in s.recent %}
+      <tr>
+        <td>{{ r.when }}</td>
+        <td>{{ r.address }}</td>
+        <td>{{ r.findings if r.findings is not none else '—' }}</td>
+        <td>{{ '%.0f'|format(r.seconds) }}s</td>
+        <td><span class="pill {{ '' if r.ok else 'bad' }}">{{ 'ok' if r.ok else 'failed' }}</span></td>
+      </tr>
+      {% endfor %}
+    </table></div>
+    {% else %}
+    <div class="empty">No runs yet. They'll show up here as soon as someone runs a report.</div>
+    {% endif %}
+  </div>
+
+  <p class="note">Costs are estimates at about $0.09 per report. Failed runs aren't counted. Report text and client names are never stored.</p>
+</div>
+</body>
+</html>

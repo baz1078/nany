@@ -11,11 +11,13 @@ Then open http://127.0.0.1:5057
 
 import os
 import sys
+import time
 
-from flask import Flask, jsonify, make_response, render_template, request
+from flask import Flask, Response, jsonify, make_response, render_template, request
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from tools.review_report import review_report
+import admin_stats
 
 app = Flask(__name__)
 
@@ -32,12 +34,27 @@ def api_review():
     url = (request.get_json(silent=True) or {}).get("url", "").strip()
     if not url:
         return jsonify({"error": "Paste a report URL first."}), 400
+    started = time.time()
     try:
         result = review_report(url)
     except Exception as exc:
+        admin_stats.log_run(None, None, time.time() - started, False)
         return jsonify({"error": f"Nani couldn't finish that review: {exc}"}), 502
     result["source_url"] = url
+    admin_stats.log_run(result.get("property_address"), len(result.get("findings") or []), time.time() - started, True)
     return jsonify(result)
+
+
+@app.route("/admin")
+def admin():
+    if not os.environ.get("ADMIN_PASSWORD"):
+        return "Not found", 404
+    auth = request.authorization
+    if not auth or not admin_stats.check_password(auth.password or ""):
+        return Response("Sign in with the admin password.", 401, {"WWW-Authenticate": 'Basic realm="Nani admin"'})
+    resp = make_response(render_template("admin.html", s=admin_stats.stats()))
+    resp.headers["Cache-Control"] = "no-store"
+    return resp
 
 
 if __name__ == "__main__":
