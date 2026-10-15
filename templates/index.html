@@ -101,14 +101,17 @@
   .chip:hover{transform:translateY(-1px);box-shadow:var(--shadow);}
   .chip .n{font-family:var(--font-display);font-weight:800;font-size:1.5rem;line-height:1;}
   .chip .l{font-size:0.72rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--ink-muted);font-weight:600;}
-  .chip[data-sev="high"] .n{color:var(--sev-high);}
-  .chip[data-sev="medium"] .n{color:var(--sev-medium);}
-  .chip[data-sev="low"] .n{color:var(--sev-low);}
+  .chip[data-sev="high"]{background:var(--sev-high-bg);border-color:color-mix(in srgb,var(--sev-high) 40%,transparent);}
+  .chip[data-sev="high"] .n, .chip[data-sev="high"] .l{color:var(--sev-high);}
+  .chip[data-sev="medium"]{background:var(--sev-medium-bg);border-color:color-mix(in srgb,var(--sev-medium) 40%,transparent);}
+  .chip[data-sev="medium"] .n, .chip[data-sev="medium"] .l{color:var(--sev-medium);}
+  .chip[data-sev="low"]{background:var(--sev-low-bg);border-color:color-mix(in srgb,var(--sev-low) 40%,transparent);}
+  .chip[data-sev="low"] .n, .chip[data-sev="low"] .l{color:var(--sev-low);}
   .chip[data-sev="all"] .n{color:var(--ink);}
   .chip.active{background:var(--surface);border-color:var(--ink-faint);box-shadow:var(--shadow);}
-  .chip.active[data-sev="high"]{border-color:var(--sev-high);}
-  .chip.active[data-sev="medium"]{border-color:var(--sev-medium);}
-  .chip.active[data-sev="low"]{border-color:var(--sev-low);}
+  .chip.active[data-sev="high"]{background:var(--sev-high-bg);border-color:var(--sev-high);box-shadow:0 0 0 1px var(--sev-high);}
+  .chip.active[data-sev="medium"]{background:var(--sev-medium-bg);border-color:var(--sev-medium);box-shadow:0 0 0 1px var(--sev-medium);}
+  .chip.active[data-sev="low"]{background:var(--sev-low-bg);border-color:var(--sev-low);box-shadow:0 0 0 1px var(--sev-low);}
 
   .section-label{font-family:var(--font-mono);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--ink-faint);margin:22px 2px 8px;}
 
@@ -135,7 +138,9 @@
   .score-tag.sev-high{color:var(--sev-high);background:var(--sev-high-bg);}
   .score-tag.sev-medium{color:var(--sev-medium);background:var(--sev-medium-bg);}
   .score-tag.sev-low{color:var(--sev-low);background:var(--sev-low-bg);}
-  .score-clean-badge{display:inline-flex;align-items:center;gap:4px;font-size:0.8rem;font-weight:700;color:var(--good);}
+  .score-clean-badge{display:inline-flex;align-items:center;gap:4px;font-size:1.1rem;font-weight:700;color:var(--good);line-height:1;}
+  .legend{margin:10px 2px 0;font-size:0.78rem;color:var(--ink-muted);display:flex;align-items:center;gap:6px;}
+  .legend b{color:var(--good);font-size:1rem;line-height:1;}
   .score-dash{color:var(--ink-faint);}
   .score-detail{display:none;padding:0 14px 14px 32px;flex-direction:column;gap:10px;border-top:1px dashed var(--border);}
   .score-row.open .score-detail{display:flex;}
@@ -150,6 +155,7 @@
     .score-head{display:none;}
     .score-main{grid-template-columns:1fr;gap:6px;padding:12px 14px;}
     .col-label{display:inline;}
+    .score-main:has(.score-clean-badge){grid-template-columns:1fr auto;align-items:center;}
   }
 
   .disclaimer{margin-top:18px;padding-top:14px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:6px;}
@@ -225,6 +231,7 @@
     .results > .meta-card{order:1;}
     .results > .section-label{order:2;}
     .results > .scorecard{order:3;}
+    .results > .legend{order:3;}
     .results > .also{order:4;}
     .results > .inspector-only{order:5;}
     .results > .footnote{order:6;}
@@ -261,6 +268,9 @@
     .also-head .score-chev, .saved-note, .tip{display:none !important;}
     .footnote{margin-top:12px; padding-top:8px;}
     .disclaimer{margin-top:10px; padding-top:8px;}
+    .disclaimer{gap:3px;}
+    .disclaimer p{font-size:0.7rem; line-height:1.4;}
+    .legend{margin-top:6px; font-size:0.72rem;}
     .wrap{max-width:100%;padding:0;}
   }
 </style>
@@ -336,6 +346,7 @@
     <div class="scorecard" id="sections">
       <div class="score-head"><div>Section</div><div>Review</div></div>
     </div>
+    <div class="legend"><b>✓</b> = no quality issue flagged</div>
 
     <div class="also" id="also" hidden>
       <div class="also-head" id="also-head"><span class="score-chev">▸</span><span>Also noticed</span><span class="also-sub" id="also-sub"></span></div>
@@ -344,6 +355,7 @@
 
     <div class="footnote" id="footnote"></div>
     <div class="disclaimer">
+      <p>Nani is a quick check to help you catch things. It isn't 100% accurate, so always review your report yourself.</p>
       <p>Nani promotes clean, professional inspection reports and best practices. It checks for completeness and consistency — it does not review for professional judgment calls or speculative assessments.</p>
       <p>Reminder: take close-up photos of each component, not just wide shots — background context that goes unreported in a photo can become a liability if it's missed.</p>
     </div>
@@ -544,10 +556,9 @@ function render(data){
         <div class="score-main">
           <div class="score-name-wrap">
             <span class="score-chev" style="visibility:hidden">▸</span>
-            <span class="status-dot clean"></span>
             <span class="score-name">${label}</span>
           </div>
-          <div class="score-col"><span class="score-clean-badge">✓ Clean</span></div>
+          <div class="score-col"><span class="score-clean-badge" title="No quality issue flagged" aria-label="No quality issue flagged">✓</span></div>
         </div>
       `;
       sectionsEl.appendChild(row);
@@ -571,7 +582,6 @@ function render(data){
       <div class="score-main">
         <div class="score-name-wrap">
           <span class="score-chev">▸</span>
-          <span class="status-dot ${SEV_CLASS[worst]}"></span>
           <span class="score-name">${label}</span>
           ${pagesLabel(items)}
         </div>
