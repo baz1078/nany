@@ -309,7 +309,7 @@
         <button type="button" data-set-view="admin" class="active">Nani's Notes</button>
         <button type="button" data-set-view="inspector">The Talk</button>
       </div>
-      <span id="pdf-btn" class="pdf-btns" hidden><button type="button" class="pdf-btn" id="pdf-quick" title="1-2 page summary">Quick PDF</button><button type="button" class="pdf-btn" id="pdf-full" title="Every comment and link">Full PDF</button></span>
+      <span id="pdf-btn" class="pdf-btns" hidden><button type="button" class="pdf-btn" id="pdf-quick" title="1-2 page summary">Quick PDF</button><button type="button" class="pdf-btn" id="pdf-full" title="Every comment and link">Full PDF</button><button type="button" class="pdf-btn" id="new-btn" title="Clear this report and start over">New report</button></span>
     </div>
   </div>
 
@@ -669,6 +669,17 @@ function printAs(mode){
   window.addEventListener('afterprint', done);
   window.print();
 }
+document.getElementById('new-btn').addEventListener('click', () => {
+  try{ localStorage.removeItem('nany:last-url'); }catch(e){}
+  results.classList.remove('visible');
+  runError.classList.remove('visible');
+  document.getElementById('pdf-btn').hidden = true;
+  document.getElementById('saved-note').hidden = true;
+  document.body.classList.remove('has-run');
+  urlInput.value = '';
+  window.scrollTo(0, 0);
+  urlInput.focus();
+});
 document.getElementById('pdf-quick').addEventListener('click', () => printAs('quick'));
 document.getElementById('pdf-full').addEventListener('click', () => printAs('full'));
 
