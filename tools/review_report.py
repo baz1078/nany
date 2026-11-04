@@ -22,6 +22,7 @@ from dotenv import load_dotenv
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from tools.fetch_report import fetch_report_text
+from tools.identity import extract_inspector
 
 load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), '.env'))
 
@@ -487,6 +488,7 @@ def review_report(url):
     result["also_noticed"] = _drop_code_duplicates(result["also_noticed"], code_items)
     result["report_hash"] = hashlib.md5(text.encode("utf-8")).hexdigest()[:12]
     result["anchor_hashes"] = anchor_hashes(text)
+    result["inspector"] = extract_inspector(text)  # for the admin run log only; app.py strips it from the response
     pages = page_map(text)
     for item in result.get("findings", []) + result.get("also_noticed", []):
         item["page"] = pages.get(item.get("anchor"))

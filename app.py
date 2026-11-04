@@ -31,17 +31,21 @@ def index():
 
 @app.route("/api/review", methods=["POST"])
 def api_review():
-    url = (request.get_json(silent=True) or {}).get("url", "").strip()
+    body = request.get_json(silent=True) or {}
+    url = body.get("url", "").strip()
+    src = body.get("src")
     if not url:
         return jsonify({"error": "Paste a report URL first."}), 400
     started = time.time()
     try:
         result = review_report(url)
     except Exception as exc:
-        admin_stats.log_run(None, None, time.time() - started, False)
+        admin_stats.log_run(None, None, time.time() - started, False, src=src, error=str(exc))
         return jsonify({"error": f"Nani couldn't finish that review: {exc}"}), 502
     result["source_url"] = url
-    admin_stats.log_run(result.get("property_address"), len(result.get("findings") or []), time.time() - started, True)
+    inspector = result.pop("inspector", None)  # contact details go to the admin log only, never to the browser
+    admin_stats.log_run(result.get("property_address"), len(result.get("findings") or []), time.time() - started, True,
+                        inspector=inspector, src=src, items=admin_stats.finding_labels(result.get("findings")))
     return jsonify(result)
 
 

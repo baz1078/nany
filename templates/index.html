@@ -162,7 +162,8 @@
   .hero img{display:block;width:100%;max-width:420px;height:auto;}
   .hero .hot-bubble{position:absolute;left:calc(min(100%,420px) * 0.475);top:calc(min(100vw,420px) * 0.052);width:calc(min(100%,420px) * 0.52);height:calc(min(100vw,420px) * 0.385);border-radius:22px;}
   .hero .hot-bubble:hover{outline:2px solid var(--accent);}
-  body.has-run .hero{display:none;}
+  body.has-run .hero, body.has-run .consent{display:none;}
+  .consent{margin:8px 4px 0;font-size:0.74rem;color:var(--ink-faint);line-height:1.4;}
   @media (min-width:900px){
     .hero{width:420px;max-width:100%;margin:26px auto 40px;border-radius:24px;overflow:hidden;border:1px solid var(--border);box-shadow:var(--shadow);background:#f7f8fa;}
     .hero img{max-width:none;width:100%;}
@@ -217,7 +218,7 @@
     }
     * { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
     body{background:#fff; font-size:9.5pt;}
-    .run-card, .view-toggle, .pdf-btn, .pdf-btns, .brand .tag, .hero{display:none !important;}
+    .run-card, .view-toggle, .pdf-btn, .pdf-btns, .brand .tag, .hero, .consent{display:none !important;}
     .topbar{display:none !important;}
     .print-brand.print-only{display:flex !important;justify-content:space-between;align-items:center;background:#102334;color:#fff;border-radius:10px;padding:14px 20px;margin:0 0 12px;}
     .print-brand .pb-kicker{font-family:'Montserrat',sans-serif;font-weight:800;font-size:0.6rem;letter-spacing:0.16em;text-transform:uppercase;color:#CCE241;margin-bottom:5px;}
@@ -323,6 +324,8 @@
     <div class="run-error" id="run-error"></div>
   </div>
 
+  <div class="consent" id="consent">Nani notes the inspector name and email from your report's signature so we can ask how it's working for you.</div>
+
   <div class="hero" id="hero">
     <img src="/static/auntie.jpg" width="368" height="464" alt="Auntie Audit" decoding="async">
     <a class="hot-bubble" href="https://icaschool.com/business-builder/" target="_blank" rel="noopener sponsored" aria-label="Show me how - ICA Mentorship Program"></a>
@@ -398,6 +401,13 @@ const STATUS_MESSAGES = [
 
 // Results are kept in this browser (per report link) so Back/refresh - or coming
 // back from the Inspectagram tab - never means re-running (and re-paying for) Nani.
+// optional ?src=tag (e.g. a school's link) - remembered so it survives in-app browser hops
+let SRC = '';
+try{
+  const q = (new URLSearchParams(location.search).get('src') || '').toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 30);
+  if(q) localStorage.setItem('nany:src', q);
+  SRC = q || localStorage.getItem('nany:src') || '';
+}catch(e){}
 const STORE_PREFIX = 'nany:res:';
 function loadSaved(url){
   try{ return JSON.parse(localStorage.getItem(STORE_PREFIX + url) || 'null'); }catch(e){ return null; }
@@ -446,7 +456,7 @@ async function runReview(){
     const resp = await fetch('/api/review', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({url})
+      body: JSON.stringify({url, src: SRC})
     });
     const data = await resp.json();
     if(!resp.ok){ throw new Error(data.error || 'Something went wrong.'); }
