@@ -42,6 +42,9 @@
   .src{display:inline-block;font-size:.68rem;font-weight:600;padding:1px 8px;border-radius:99px;background:#eaf1f8;color:#33567a;margin-left:6px;}
   details summary{cursor:pointer;list-style:none;color:var(--ink);} details summary::-webkit-details-marker{display:none;}
   details[open] summary{font-weight:600;} .items{margin:6px 0 2px;padding-left:16px;color:var(--ink-soft);font-size:.78rem;line-height:1.5;}
+  .prow td{border-top:1px solid var(--line);padding-bottom:2px;} .rrow td{border-top:none;padding:0 8px 10px;}
+  .rep{font-size:.84rem;padding:3px 0;} .rep a,.tbl td a{color:var(--ink);text-decoration:none;border-bottom:1px solid var(--line);}
+  .rmeta{color:var(--ink-faint);font-size:.76rem;margin-left:6px;} .nf{display:block;color:var(--ink-faint);font-size:.7rem;}
   .err{display:block;color:var(--red);font-size:.74rem;}
   .empty{color:var(--ink-faint);font-size:.88rem;padding:10px 0;}
   .note{color:var(--ink-faint);font-size:.76rem;}
@@ -79,11 +82,17 @@
     <div class="tbl"><table class="who">
       <tr><th>Inspector</th><th>Contact</th><th>Runs</th><th>Reports</th><th>Last run</th></tr>
       {% for p in s.people %}
-      <tr>
+      <tr class="prow">
         <td>{{ p.name or '—' }}{% if p.source %}<span class="src">{{ p.source }}</span>{% endif %}</td>
-        <td>{% if p.email %}<a href="mailto:{{ p.email }}">{{ p.email }}</a>{% else %}—{% endif %}{% if p.phone %}<small>{{ p.phone }}</small>{% endif %}</td>
+        <td>{% if p.email %}<a href="mailto:{{ p.email }}">{{ p.email }}</a>{% else %}—<small>name only, no email on the report</small>{% endif %}{% if p.phone %}<small>{{ p.phone }}</small>{% endif %}</td>
         <td>{{ p.runs }}</td><td>{{ p.reports }}</td><td>{{ p.last }}</td>
       </tr>
+      <tr class="rrow"><td colspan="5">
+        {% for g in p.reports_list %}
+        <div class="rep">{% if g.url %}<a href="{{ g.url }}" target="_blank" rel="noopener">{{ g.address }} &#8599;</a>{% else %}{{ g.address }}{% endif %}
+          <span class="rmeta">{{ g.runs }} run{{ '' if g.runs == 1 else 's' }}{% if g.counts|length > 1 %} &middot; findings {{ g.counts|join(' &rarr; ')|safe }}{% else %} &middot; {{ g.counts[0] }} findings{% endif %} &middot; last {{ g.last }}</span></div>
+        {% endfor %}
+      </td></tr>
       {% endfor %}
     </table></div>
     {% if s.unknown_runs %}<p class="note" style="margin:8px 0 0">{{ s.unknown_runs }} earlier run(s) have no inspector recorded.</p>{% endif %}
@@ -100,8 +109,8 @@
       {% for r in s.recent %}
       <tr>
         <td>{{ r.when }}</td>
-        <td>{{ r.name or '—' }}{% if r.source %}<span class="src">{{ r.source }}</span>{% endif %}</td>
-        <td>{{ r.address }}</td>
+        <td>{{ r.name or '—' }}{% if r.source %}<span class="src">{{ r.source }}</span>{% endif %}{% if r.ok and not r.name and r.how == 'none' %}<small class="nf">no inspector found</small>{% endif %}</td>
+        <td>{% if r.url %}<a href="{{ r.url }}" target="_blank" rel="noopener">{{ r.address if r.address != '—' else 'open link' }} &#8599;</a>{% else %}{{ r.address }}{% endif %}</td>
         <td>{% if r.labels %}<details><summary>{{ r.findings }} &#9662;</summary><ul class="items">{% for i in r.labels %}<li>{{ i }}</li>{% endfor %}</ul></details>{% else %}{{ r.findings if r.findings is not none else '—' }}{% endif %}</td>
         <td>{{ '%.0f'|format(r.seconds) }}s</td>
         <td><span class="pill {{ '' if r.ok else 'bad' }}">{{ 'ok' if r.ok else 'failed' }}</span>{% if r.error %}<span class="err">{{ r.error[:70] }}</span>{% endif %}</td>

@@ -40,12 +40,12 @@ def api_review():
     try:
         result = review_report(url)
     except Exception as exc:
-        admin_stats.log_run(None, None, time.time() - started, False, src=src, error=str(exc))
+        admin_stats.log_run(None, None, time.time() - started, False, src=src, error=str(exc), url=url)
         return jsonify({"error": f"Nani couldn't finish that review: {exc}"}), 502
     result["source_url"] = url
     inspector = result.pop("inspector", None)  # contact details go to the admin log only, never to the browser
     admin_stats.log_run(result.get("property_address"), len(result.get("findings") or []), time.time() - started, True,
-                        inspector=inspector, src=src, items=admin_stats.finding_labels(result.get("findings")))
+                        inspector=inspector, src=src, items=admin_stats.finding_labels(result.get("findings")), url=url)
     return jsonify(result)
 
 
