@@ -162,7 +162,11 @@
   .hero img{display:block;width:100%;max-width:420px;height:auto;}
   .hero .hot-bubble{position:absolute;left:calc(min(100%,420px) * 0.475);top:calc(min(100vw,420px) * 0.052);width:calc(min(100%,420px) * 0.52);height:calc(min(100vw,420px) * 0.385);border-radius:22px;}
   .hero .hot-bubble:hover{outline:2px solid var(--accent);}
-  body.has-run .hero, body.has-run .consent{display:none;}
+  body.has-run .hero, body.has-run .consent, body.has-run .start-note{display:none;}
+  .attention{margin:26px auto 8px;max-width:760px;}
+  .attention img{display:block;width:100%;height:auto;border-radius:18px;}
+  .start-note{margin:12px 4px 0;font-size:0.84rem;color:var(--ink-muted);line-height:1.45;}
+  .start-note + .consent{margin-top:6px;}
   .consent{margin:8px 4px 0;font-size:0.74rem;color:var(--ink-faint);line-height:1.4;}
   @media (min-width:900px){
     .hero{width:420px;max-width:100%;margin:26px auto 40px;border-radius:24px;overflow:hidden;border:1px solid var(--border);box-shadow:var(--shadow);background:#f7f8fa;}
@@ -218,7 +222,7 @@
     }
     * { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
     body{background:#fff; font-size:9.5pt;}
-    .run-card, .view-toggle, .pdf-btn, .pdf-btns, .brand .tag, .hero, .consent{display:none !important;}
+    .run-card, .view-toggle, .pdf-btn, .pdf-btns, .brand .tag, .hero, .consent, .start-note, .attention{display:none !important;}
     .topbar{display:none !important;}
     .print-brand.print-only{display:flex !important;justify-content:space-between;align-items:center;background:#102334;color:#fff;border-radius:10px;padding:14px 20px;margin:0 0 12px;}
     .print-brand .pb-kicker{font-family:'Montserrat',sans-serif;font-weight:800;font-size:0.6rem;letter-spacing:0.16em;text-transform:uppercase;color:#CCE241;margin-bottom:5px;}
@@ -317,13 +321,14 @@
   <div class="run-card">
     <label for="url-input">Inspectagram report URL</label>
     <div class="run-row">
-      <input type="text" id="url-input" placeholder="https://admin.inspectagram.io/v3/reports/..." autocomplete="off">
+      <input type="text" id="url-input" placeholder="Paste your Share link here" autocomplete="off">
       <button type="button" id="run-btn">Run Nani</button>
     </div>
     <div class="run-status" id="run-status"><div class="spinner"></div><span id="run-status-text">Nani is reading the report...</span></div>
     <div class="run-error" id="run-error"></div>
   </div>
 
+  <div class="start-note" id="start-note">Think of Nani as a second set of eyes. It's a helpful guide, not a catch-all, so give your report a final read yourself.</div>
   <div class="consent" id="consent">Nani notes the inspector name and email from your report's signature so we can ask how it's working for you.</div>
 
   <div class="hero" id="hero">
@@ -378,6 +383,7 @@
       <p>Nani promotes clean, professional inspection reports and best practices. It checks for completeness and consistency — it does not review for professional judgment calls or speculative assessments.</p>
       <p>Reminder: take close-up photos of each component, not just wide shots — background context that goes unreported in a photo can become a liability if it's missed.</p>
     </div>
+    <div class="attention"><img src="/static/attention.jpg" width="1100" height="1392" loading="lazy" decoding="async" alt="Attention: the art of exceptional reports. BASEline: every icon needs a focused, clean photo. BlackBOX: your chapter photo should prove operation. Insurance: every question needs an answer, and always document limitations."></div>
   </div>
 </div>
 

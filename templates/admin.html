@@ -55,7 +55,7 @@
 <div class="wrap">
   <div class="top">
     <div><div class="kicker">Admin</div><h1>Nani</h1></div>
-    <small>Times in {{ s.tz }}</small>
+    <small>Times in {{ s.tz }} &middot; <a href="/admin.csv" style="color:#CCE241;text-decoration:none">Export CSV</a></small>
   </div>
 
   <div class="tiles">
@@ -85,7 +85,7 @@
       <tr class="prow">
         <td>{{ p.name or '—' }}{% if p.source %}<span class="src">{{ p.source }}</span>{% endif %}</td>
         <td>{% if p.email %}<a href="mailto:{{ p.email }}">{{ p.email }}</a>{% else %}—<small>name only, no email on the report</small>{% endif %}{% if p.phone %}<small>{{ p.phone }}</small>{% endif %}</td>
-        <td>{{ p.runs }}</td><td>{{ p.reports }}</td><td>{{ p.last }}</td>
+        <td>{{ p.runs }}{% if p.inferred %}<small>{{ p.inferred }} matched by address</small>{% endif %}</td><td>{{ p.reports }}</td><td>{{ p.last }}</td>
       </tr>
       <tr class="rrow"><td colspan="5">
         {% for g in p.reports_list %}
@@ -109,9 +109,9 @@
       {% for r in s.recent %}
       <tr>
         <td>{{ r.when }}</td>
-        <td>{{ r.name or '—' }}{% if r.source %}<span class="src">{{ r.source }}</span>{% endif %}{% if r.ok and not r.name and r.how == 'none' %}<small class="nf">no inspector found</small>{% endif %}</td>
+        <td>{{ r.name or '—' }}{% if r.source %}<span class="src">{{ r.source }}</span>{% endif %}{% if r.inferred %}<small class="nf">matched by address</small>{% elif r.ok and not r.name and r.how == 'none' %}<small class="nf">no inspector found</small>{% endif %}</td>
         <td>{% if r.url %}<a href="{{ r.url }}" target="_blank" rel="noopener">{{ r.address if r.address != '—' else 'open link' }} &#8599;</a>{% else %}{{ r.address }}{% endif %}</td>
-        <td>{% if r.labels %}<details><summary>{{ r.findings }} &#9662;</summary><ul class="items">{% for i in r.labels %}<li>{{ i }}</li>{% endfor %}</ul></details>{% else %}{{ r.findings if r.findings is not none else '—' }}{% endif %}</td>
+        <td>{% if r.labels %}<details><summary>{{ r.findings }} &#9662;</summary><ul class="items">{% for i in r.labels %}<li>{{ i }}</li>{% endfor %}</ul></details>{% else %}{{ r.findings if r.findings is not none else '—' }}{% endif %}{% if r.text %}<small class="nf">{{ 'same report text' if r.text == 'same' else 'report edited' }}</small>{% endif %}</td>
         <td>{{ '%.0f'|format(r.seconds) }}s</td>
         <td><span class="pill {{ '' if r.ok else 'bad' }}">{{ 'ok' if r.ok else 'failed' }}</span>{% if r.error %}<span class="err">{{ r.error[:70] }}</span>{% endif %}</td>
       </tr>
@@ -122,7 +122,7 @@
     {% endif %}
   </div>
 
-  <p class="note">Costs are estimates at about $0.09 per report. Failed runs aren't counted. Report text and client names are never stored. Inspector details come from the signature on the report.</p>
+  <p class="note">Costs are estimates at about $0.09 per report. Failed runs aren't counted. Report text and client names are never stored. Inspector details come from the signature on the report; "matched by address" is inferred when the same address was run before.</p>
 </div>
 </body>
 </html>
