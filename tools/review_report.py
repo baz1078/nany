@@ -141,6 +141,130 @@ group the recurring patterns, not just a repeat of every line item, and end on w
 stood out as solid"
 }"""
 
+# SYSTEM_PROMPT above is deliberately left alone. Every edit to it, even one extra rule, moved unrelated
+# findings around (tested 2026-11-12 on 5 reports: findings merged, dropped, shifted to "Also noticed",
+# and new ones invented). So new rules are enforced in code on the review's output (_drop_out_of_scope),
+# and Nani's voice is a separate second pass: a small model rewords the finished findings afterwards.
+# It only ever sees the findings, never the report.
+VOICE_MODEL = "claude-haiku-5-5"
+
+VOICE_PROMPT = """You reword quality-check findings about a home inspection report. Another reviewer already \
+decided what is wrong; you change only how it is said. Never add, drop, merge, split or reorder findings, and never \
+change a fact, name, number, quote, unit or page reference.
+
+The voice: a firm, experienced mentor talking straight to a trainee inspector. Direct, a little dry, never rude.
+- Say "you". Aim at the report, never at the person. No insults, no mockery, no profanity, no ALL CAPS, no \
+exclamation marks.
+- Plain words. No bracketed markup: write "an attention icon", never "[attention icon]". Write "page 86", never \
+"page-86". Never write "checkbox", "prefix" or "prefixed" in any field, the "fix" included: a field that lacks \
+them simply has "no real answer", and the fix is to "give it a real answer".
+- Each finding stands alone. Use only what that finding's own text says; never bring in a detail from another \
+finding.
+- Do not take sides or add a judgment the original does not make. When two things disagree, say that they \
+disagree and leave the choice to the inspector: never say which one is wrong, too soft, too strong, or what the \
+right severity is.
+- Talk to the inspector directly: "your photo", never "the inspector's photo".
+
+For each finding write:
+- "issue": one or two short sentences that say exactly what is wrong, then, where it fits, a short pointed closer \
+("So why isn't it in the Summary?", "Which is it?", "Pick one.", "Where is it?"). Keep entry and field names in \
+single quotes. If the finding lists several fields or entries, keep every one of them. Stay under 40 words unless a \
+list makes it longer.
+- "why": the rule or the consequence, one or two short firm sentences, under 14 words. It must say something the \
+"issue" has not already said: never reuse a sentence from the "issue". "No exceptions." may only \
+follow a stated rule about a safety item ("Safety items go in the Summary. No exceptions."), never a description.
+- "fix": one short instruction that starts with a verb and ends with a period, under 12 words. Never write \
+"Fix it." — the page adds that.
+Also write "overall": two or three short sentences, under 45 words — the verdict first, then the main things to \
+fix. If there are no findings, say the report is ready to send.
+
+Examples of the voice:
+issue "You found a missing GFCI at the bathroom outlet. So why isn't it in the Summary?" / why "Safety items go in \
+the Summary. No exceptions." / fix "Add a GFCI entry to the Bathroom Summary."
+issue "Insurance says the bathroom GFCI is present. The Bathroom page says there isn't one. Which is it?" / why \
+"These two can't both be true, and the client will notice." / fix "Make them match."
+issue "'Furnace' wears an attention icon, but its note says Observation. Pick one." / why "The icon and the note \
+are telling two different stories." / fix "Change the icon or rewrite the note."
+overall "Close, but not client-ready. One safety item never made it to the Summary and two entries don't say \
+where. Fix these and send it."
+
+Return ONLY valid JSON, no markdown fencing, one entry per input finding with the same "i":
+{"overall": "...", "findings": [{"i": 0, "issue": "...", "why": "...", "fix": "..."}]}"""
+
+
+_NUMBER_WORDS = ["Zero", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Eleven",
+                 "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen", "Twenty"]
+
+
+def _insurance_list(findings, blanks):
+    """The blank Insurance fields as a list for the page to show, taken from the code scan and limited to
+    the fields the review's own Insurance finding names. Returns (finding, items) or (None, None)."""
+    for f in findings:
+        if f.get("area") != "insurance" or f.get("tag") != "Missing info":
+            continue
+        issue = (f.get("issue") or "").lower()
+        items = []
+        for b in blanks or []:
+            label = b.split(" (")[0]
+            if label.lower() in issue:
+                items.append({"name": label, "note": "says n/a" if "n/a" in b[len(label):] else None})
+        if len(items) >= 3:
+            return f, items
+    return None, None
+
+
+def apply_voice(result, client=None, insurance_blanks=None):
+    """Reword the model-written findings and the one-line verdict in Nani's voice. Wording only: which
+    findings exist, their order, tags, severity, sections and links are never touched, and code-made
+    findings already carry the voice. Any failure leaves the original wording in place."""
+    if os.environ.get("NANI_VOICE", "").lower() == "off":
+        return result
+    items = [f for f in result.get("findings") or [] if f.get("source") != "code"]
+    listed, names = _insurance_list(items, insurance_blanks)
+    payload = {"overall": result.get("overall_assessment") or "",
+               "total_findings": len(result.get("findings") or []),
+               "findings": [{"i": i, "tag": f.get("tag"), "severity": f.get("severity"), "section": f.get("section"),
+                             "issue": f.get("issue"), "why": f.get("why_it_matters"), "fix": f.get("fix")}
+                            for i, f in enumerate(items)]}
+    for entry, f in zip(payload["findings"], items):
+        if f is listed:  # this one gets fixed wording below; the voice model only needs the gist for its verdict
+            entry["issue"] = f"{len(names)} fields in The Insurance section are blank or say only 'n/a'."
+    try:
+        client = client or anthropic.Anthropic(timeout=90.0, max_retries=1)
+        message = client.messages.create(
+            model=VOICE_MODEL, max_tokens=12000, system=VOICE_PROMPT,
+            messages=[{"role": "user", "content": json.dumps(payload, ensure_ascii=False)}],
+            # A rewording job: no thinking, low effort. Measured 2026-11-12: about 5s this way, against
+            # 12-22s whenever the model chose to think. Effort goes via extra_body because the pinned SDK
+            # (0.75.0) predates the output_config argument.
+            thinking={"type": "disabled"},
+            extra_body={"output_config": {"effort": "low"}})
+        raw = "".join(b.text for b in message.content if b.type == "text").strip()
+        if raw.startswith("```"):
+            raw = raw.split("\n", 1)[1].rsplit("```", 1)[0]
+        out = json.loads(raw.strip())
+        by_i = {int(o["i"]): o for o in out.get("findings", [])}
+        fields = ("issue", "why", "fix")
+        if set(by_i) != set(range(len(items))) or not all(
+                isinstance(o.get(k), str) and o[k].strip() for o in by_i.values() for k in fields):
+            print("[nani] voice step skipped: incomplete rewrite", file=sys.stderr, flush=True)
+            return result  # keep the original wording rather than mix two voices
+        for i, f in enumerate(items):
+            f["issue"], f["why_it_matters"], f["fix"] = (
+                re.sub(r"\b([Pp])age-(\d+)\b", r"\1age \2", by_i[i][k].strip()) for k in fields)
+        if listed is not None:  # the page lists the names, so this finding gets fixed wording that never repeats them
+            count = _NUMBER_WORDS[len(names)] if len(names) < len(_NUMBER_WORDS) else str(len(names))
+            listed["issue"] = f"{count} Insurance fields have no answer. None of them can stay that way."
+            listed["why_it_matters"] = "Every Insurance question needs an answer."
+            listed["fix"] = "Fill in every field on the list."
+            listed["items"] = names
+        if isinstance(out.get("overall"), str) and out["overall"].strip():
+            result["overall_assessment"] = out["overall"].strip()
+    except Exception as exc:  # never let the wording step break a review; say so in the server log
+        print(f"[nani] voice step skipped: {type(exc).__name__}: {str(exc)[:200]}", file=sys.stderr, flush=True)
+    return result
+
+
 # Literal leftovers a text scan can find with certainty. Found in code (not left
 # to the model) so they're reported the same way on every run.
 LITERAL_PATTERNS = [
@@ -340,16 +464,19 @@ def find_blank_summary_entries(text):
     for (name, kind), items in by_name.items():
         icon, anchor = items[0][1], next((a for _, _, _, a in items if a), None)
         if len(items) > 1:
-            issue = f"{len(items)} Summary entries named '{name}' carry a severity icon but have nothing under them."
-            fix = "Fill them in, or remove the empty entries"
+            issue = (f"{len(items)} Summary entries named '{name}' have a severity icon and nothing under them. "
+                     "What is the client supposed to do with that?")
+            fix = "Fill them in, or remove the empty entries."
         elif kind == "nothing":
-            issue = f"The Summary entry for '{name}' carries an [{icon}] but has nothing under it — no issue, action, or notes."
-            fix = "Add the issue and action, or remove the entry"
+            issue = (f"'{name}' sits in the Summary with an {icon} and nothing under it. No issue, no action, "
+                     "no notes. So what's wrong with it?")
+            fix = "Add the issue and action, or remove the entry."
         else:
-            issue = f"The Summary entry for '{name}' carries an [{icon}] and an Issue but no Action."
-            fix = "Add the action, or remove the entry"
+            issue = (f"'{name}' in the Summary has an {icon} and an Issue, but no Action. "
+                     "What should the client do about it?")
+            fix = "Add the action, or remove the entry."
         out.append(_code_finding("summary", "Missing info", "medium", f"The Summary — {name}", issue, anchor,
-                                 "Flagged item gives the client nothing to act on", fix))
+                                 "A flagged item has to give the client something to act on.", fix))
     return out
 
 
@@ -370,8 +497,8 @@ def find_empty_pages(text):
             num = page.split("-")[1]
             out.append(_code_finding(
                 area, "Unused pages", "low", f"{header.rstrip(' +') or 'Report'} — page {num}",
-                f"Page {num}{' (' + header + ')' if header else ''} contains only a lone '+' — no observations, notes, or photos.",
-                page, "Empty page looks unfinished to the client", "Delete the empty page"))
+                f"Page {num}{' (' + header + ')' if header else ''} is empty. Nothing on it but a lone '+'.",
+                page, "An empty page looks unfinished to the client.", "Delete the empty page."))
     return out
 
 
@@ -415,9 +542,10 @@ def find_missing_locations(text):
         names = [f"'{n}'" for n, _ in items[:8]] + ([f"and {len(items) - 8} more"] if len(items) > 8 else [])
         out.append(_code_finding(
             chapter.lower(), "Missing location", "low", f"{chapter} — Summary",
-            f"{len(items)} {chapter} Summary {'entry has' if len(items) == 1 else 'entries have'} no location (L:): " + ", ".join(names) + ".",
+            f"{len(items)} {chapter} Summary {'entry does not' if len(items) == 1 else 'entries do not'} say where: "
+            + ", ".join(names) + ". Where?",
             next((a for _, a in items if a), None),
-            "Client can't tell where the problem is", "Add an 'L:' location to each entry"))
+            "If the client can't find it, they can't fix it.", "Add an 'L:' location to each entry."))
     return out
 
 
@@ -441,6 +569,66 @@ def _drop_code_duplicates(claude_items, code_items):
             continue
         kept.append(it)
     return kept
+
+
+_PHOTO_ONLY_RE = re.compile(
+    r"\b(?:has|have|contains?|shows?|with)\s+(?:only\s+)?(?:an?\s+|its\s+own\s+)?\[PHOTO\][^.]{0,60}\b(?:but|and|with)\s+no\b",
+    re.IGNORECASE)
+_NO_LOCATION_RE = re.compile(
+    r"\b(?:no|missing|without)\s+(?:(?:an?|the)\s+)?(?:'T:'[^.]{0,25})?(?:'L:'|\(L:\)|L:|location\b)", re.IGNORECASE)
+
+
+_BLACKBOX_HEAD_RE = re.compile(r"^(?:⚠️?\s*)?[A-Za-z][A-Za-z /&]{1,30}\bGeneral (?:Notes|Observations)\b", re.IGNORECASE)
+_BLACKBOX_WORD_RE = re.compile(r"\bGeneral (?:Notes|Observations)\b|\bBlackBOX\b", re.IGNORECASE)
+_QUOTED_RE = re.compile(r"'([^']{15,240})'|\"([^\"]{15,240})\"|“([^”]{15,240})”")
+
+
+def _norm_text(s):
+    return re.sub(r"\s+", " ", s).strip().lower()
+
+
+def blackbox_texts(text):
+    """The BlackBOX is the block that closes a chapter: '⚠️ <Chapter> General Notes' (or 'General
+    Observations'), usually a numbered list and an End Statement. Returns (inside, outside): the text
+    of every BlackBOX block, and the rest of the report, both lower-cased with single spaces."""
+    inside, outside, in_box = [], [], False
+    for line in _clean_lines(text):
+        if "[ANCHOR:" in line or _SEV_ICON_RE.fullmatch(line):
+            in_box = False
+        elif _BLACKBOX_HEAD_RE.match(line) and "Click" not in line:
+            in_box = True
+            continue
+        (inside if in_box else outside).append(line)
+    return _norm_text(" ".join(inside)), _norm_text(" ".join(outside))
+
+
+def _about_blackbox(item, inside, outside):
+    """True when an item says something is missing from the Summary and that something lives in a BlackBOX:
+    it names the General Notes block, or quotes text that appears only inside one."""
+    issue = item.get("issue") or ""
+    if item.get("tag") in ("Mismatch", "Placeholder text"):
+        return False
+    if item.get("area") != "summary" and "summary" not in issue.lower():
+        return False
+    if _BLACKBOX_WORD_RE.search(issue + " " + (item.get("section") or "")):
+        return True
+    for m in _QUOTED_RE.finditer(issue):
+        for piece in re.split(r"\.\.\.|…", next(g for g in m.groups() if g)):
+            piece = _norm_text(piece).strip(" .,;:")
+            if len(piece) >= 15 and piece in inside and piece not in outside:
+                return True
+    return False
+
+
+def _drop_out_of_scope(items, text=""):
+    """Rules enforced on the review's output, so the review prompt itself never has to change:
+    - a BlackBOX item does not need its own Summary entry (the General Notes pointer covers it);
+    - a photo with no text is fine;
+    - an entry with no location is only a problem in Interior and Exterior, and code checks those."""
+    inside, outside = blackbox_texts(text) if text else ("", "")
+    return [it for it in items
+            if not _PHOTO_ONLY_RE.search(it.get("issue", "")) and not _NO_LOCATION_RE.search(it.get("issue", ""))
+            and not _about_blackbox(it, inside, outside)]
 
 
 def review_report(url):
@@ -484,8 +672,9 @@ def review_report(url):
         raw = raw.rsplit("```", 1)[0]
     result = json.loads(raw.strip())
     result.setdefault("also_noticed", [])
-    result["findings"] = _drop_code_duplicates(result.get("findings", []), code_items) + code_items
-    result["also_noticed"] = _drop_code_duplicates(result["also_noticed"], code_items)
+    result["findings"] = _drop_out_of_scope(_drop_code_duplicates(result.get("findings", []), code_items), text) + code_items
+    result["also_noticed"] = _drop_out_of_scope(_drop_code_duplicates(result["also_noticed"], code_items), text)
+    apply_voice(result, client, insurance_blanks=blanks)
     result["report_hash"] = hashlib.md5(text.encode("utf-8")).hexdigest()[:12]
     result["anchor_hashes"] = anchor_hashes(text)
     result["inspector"] = extract_inspector(text)  # for the admin run log only; app.py strips it from the response

@@ -73,6 +73,19 @@ reports.
   company/account on Inspectagram; verify if a report from another company 403s.
 
 ## Self-Improvement Log
+- 2026-11-12: **Do not edit the review prompt (`SYSTEM_PROMPT`) to add rules or change wording.**
+  Tested on 5 reports: every edit, even one added rule, moved unrelated findings around (merged,
+  dropped, shifted to "Also noticed", new false alarms). New rules go in code on the review's output
+  (`_drop_out_of_scope`), and wording is a separate second pass (`apply_voice`, `claude-haiku-5-5`)
+  that only sees the finished findings. Voice step: thinking off + low effort = about 5s; with thinking
+  it took 12-22s. If it fails, the original wording is kept and a `[nani] voice step skipped` line is
+  logged. `NANI_VOICE=off` turns it off.
+- 2026-11-12: "Blackbox" is now defined: the block that closes a chapter, headed
+  "⚠️ <Chapter> General Notes" (or "General Observations"). Rules from the owner: BlackBOX items never
+  need their own Summary entry; a photo with no text is fine; a missing location only matters in
+  Interior and Exterior. The blank Insurance fields show as one finding with a bulleted list.
+- 2026-11-12: Known and still open: two runs on the same unchanged report can differ by a finding or
+  two (19 vs 21 on one test report). That is the review model itself, not the rules above.
 - 2026-08-21: Built v1. Discovered the Insurance-section `n/a` pattern is a strong,
   reliable signal by diffing a real good/bad report pair — this is the most concrete
   rubric item so far. `admin.inspectagram.io/v3/reports/<id>` (no `.json` suffix, no

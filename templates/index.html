@@ -151,6 +151,21 @@
   .score-detail-item p{margin:0 0 6px;font-size:0.85rem;color:var(--ink-muted);}
   .score-detail-item .jump{font-family:var(--font-mono);font-size:0.74rem;color:var(--accent-ink);background:var(--accent-bg);display:inline-block;width:fit-content;padding:4px 9px;border-radius:5px;text-decoration:none;}
 
+  /* severity bands: a flagged section's header takes the color of its most serious finding */
+  .score-row.band-high{--band:#E8503F;--band-ink:#fff;}
+  .score-row.band-medium{--band:#F5C83A;--band-ink:#102334;}
+  .score-row.band-low{--band:#55C2F0;--band-ink:#102334;}
+  .score-row[class*="band-"] > .score-main, .score-row.clickable[class*="band-"] > .score-main:hover{background:var(--band);}
+  .score-row[class*="band-"] .score-name, .score-row[class*="band-"] .score-chev, .score-row[class*="band-"] .col-label, .score-row[class*="band-"] .score-pages{color:var(--band-ink);}
+  .score-row[class*="band-"] .score-tag{background:rgba(255,255,255,.92);color:#102334;}
+  .band-word{font-size:0.62rem;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;color:var(--band-ink);opacity:0.85;flex:none;}
+  @media screen{ .score-row[class*="band-"] > .score-main{padding-top:14px;padding-bottom:14px;} }
+  .score-detail-item p.issue{font-size:0.95rem;color:var(--ink);line-height:1.45;}
+  .fixit{font-weight:800;color:var(--ink);letter-spacing:0.02em;}
+  .flist{margin:2px 0 8px;padding-left:18px;columns:2;column-gap:18px;font-size:0.9rem;line-height:1.6;color:var(--ink);}
+  .flist li{break-inside:avoid;}
+  .flist i{font-style:normal;color:var(--ink-faint);font-size:0.78rem;}
+
   @media (max-width:640px){
     .score-head{display:none;}
     .score-main{grid-template-columns:1fr;gap:6px;padding:12px 14px;}
@@ -163,8 +178,10 @@
   .hero .hot-bubble{position:absolute;left:calc(min(100%,420px) * 0.475);top:calc(min(100vw,420px) * 0.052);width:calc(min(100%,420px) * 0.52);height:calc(min(100vw,420px) * 0.385);border-radius:22px;}
   .hero .hot-bubble:hover{outline:2px solid var(--accent);}
   body.has-run .hero, body.has-run .consent, body.has-run .start-note{display:none;}
-  .attention{margin:26px auto 8px;max-width:760px;}
-  .attention img{display:block;width:100%;height:auto;border-radius:18px;}
+  /* the closing reminder sits on a full-width orange panel; the fine print follows it
+     (the shadow paints the color out to both screen edges without causing sideways scroll) */
+  .attention{margin:34px 0 0;padding:26px 0 34px;background:#f87700;box-shadow:0 0 0 100vmax #f87700;clip-path:inset(0 -100vmax);}
+  .attention img{display:block;width:100%;max-width:760px;margin:0 auto;height:auto;border-radius:18px;}
   .start-note{margin:12px 4px 0;font-size:0.84rem;color:var(--ink-muted);line-height:1.45;}
   .start-note + .consent{margin-top:6px;}
   .consent{margin:8px 4px 0;font-size:0.74rem;color:var(--ink-faint);line-height:1.4;}
@@ -175,6 +192,7 @@
   }
 
   .disclaimer{margin-top:18px;padding-top:14px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:6px;}
+  .attention + .disclaimer{border-top:none;padding-top:4px;}
   .disclaimer p{margin:0;font-size:0.76rem;color:var(--ink-faint);line-height:1.5;}
 
   .coaching-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:26px 28px;}
@@ -378,12 +396,12 @@
     </div>
 
     <div class="footnote" id="footnote"></div>
+    <div class="attention"><img src="/static/attention.jpg" width="1100" height="1392" loading="lazy" decoding="async" alt="Attention: the art of exceptional reports. BASEline: every icon needs a focused, clean photo. BlackBOX: your chapter photo should prove operation. Insurance: every question needs an answer, and always document limitations."></div>
     <div class="disclaimer">
       <p>Nani is a quick check to help you catch things. It isn't 100% accurate, so always review your report yourself.</p>
       <p>Nani promotes clean, professional inspection reports and best practices. It checks for completeness and consistency — it does not review for professional judgment calls or speculative assessments.</p>
       <p>Reminder: take close-up photos of each component, not just wide shots — background context that goes unreported in a photo can become a liability if it's missed.</p>
     </div>
-    <div class="attention"><img src="/static/attention.jpg" width="1100" height="1392" loading="lazy" decoding="async" alt="Attention: the art of exceptional reports. BASEline: every icon needs a focused, clean photo. BlackBOX: your chapter photo should prove operation. Insurance: every question needs an answer, and always document limitations."></div>
   </div>
 </div>
 
@@ -502,6 +520,22 @@ const TAG_BUCKET = {
 };
 const SEV_RANK = {high:3, medium:2, low:1};
 const SEV_CLASS = {high:'sev-high', medium:'sev-medium', low:'sev-low'};
+const BAND_WORD = {high:'Liability', medium:'Credibility', low:'Polish'};
+
+// A finding that covers many fields (the blank Insurance fields) shows them as a list, not a paragraph.
+function esc(s){
+  return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;'}[c]));
+}
+function itemList(items){
+  if(!Array.isArray(items) || !items.length) return '';
+  return '<ul class="flist">' + items.map(i => `<li>${esc(i.name)}${i.note ? ' <i>' + esc(i.note) + '</i>' : ''}</li>`).join('') + '</ul>';
+}
+
+// The fix as a full sentence, so the bold "Fix it." can follow it.
+function fixLine(fix){
+  const t = (fix || '').trim();
+  return t ? t + (/[.!?]$/.test(t) ? ' ' : '. ') : '';
+}
 
 function worstSeverity(items){
   return items.reduce((worst, f) => (SEV_RANK[f.severity] > SEV_RANK[worst] ? f.severity : worst), 'low');
@@ -599,7 +633,7 @@ function render(data){
       return;
     }
 
-    row.classList.add('clickable');
+    row.classList.add('clickable', 'band-' + worst);
     // dedupe tags within this section, tracking the worst severity behind each
     const byTag = {};
     items.forEach(f => {
@@ -617,6 +651,7 @@ function render(data){
         <div class="score-name-wrap">
           <span class="score-chev">▸</span>
           <span class="score-name">${label}</span>
+          <span class="band-word">${BAND_WORD[worst]}</span>
           ${pagesLabel(items)}
         </div>
         <div class="score-col"><span class="col-label">Review</span>${tagCellHtml(allTags)}</div>
@@ -627,9 +662,9 @@ function render(data){
           return `
             <div class="score-detail-item">
               <b>${f.tag || 'Missing info'}</b>
-              <p>${f.issue}</p>
+              <p class="issue">${f.issue}</p>${itemList(f.items)}
               <p>${f.why_it_matters}</p>
-              <p><b style="font-size:0.78rem;">Fix:</b> ${f.fix}</p>
+              <p>${fixLine(f.fix)}<span class="fixit">Fix it.</span></p>
               ${where(f)}${link ? `<a class="jump" href="${link}" target="_blank" rel="noopener">${jumpLabel(f)}</a>` : ''}
             </div>
           `;
