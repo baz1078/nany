@@ -124,8 +124,10 @@
   .score-row.clickable .score-main{cursor:pointer;}
   .score-row.clickable .score-main:hover{background:var(--surface-2);}
   .score-name-wrap{display:flex;align-items:center;gap:8px;min-width:0;}
-  .score-chev{font-family:var(--font-mono);color:var(--ink-faint);font-size:0.75rem;transition:transform .15s ease;flex:none;width:10px;}
-  .score-row.open .score-chev{transform:rotate(90deg);}
+  /* open/close arrow: a white button at the right end of a flagged section's band */
+  .band-arrow{margin-left:auto;flex:none;width:32px;height:32px;border-radius:50%;background:#fff;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(16,35,52,.3);transition:transform .15s ease;}
+  .band-arrow::before{content:"";width:9px;height:9px;border-right:3px solid #102334;border-bottom:3px solid #102334;transform:translateY(-2px) rotate(45deg);}
+  .score-row.open .band-arrow{transform:rotate(180deg);}
   .status-dot{width:9px;height:9px;border-radius:50%;flex:none;}
   .status-dot.sev-high{background:var(--sev-high);}
   .status-dot.sev-medium{background:var(--sev-medium);}
@@ -142,12 +144,10 @@
   .legend{margin:10px 2px 0;font-size:0.78rem;color:var(--ink-muted);display:flex;align-items:center;gap:6px;}
   .legend b{color:var(--good);font-size:1rem;line-height:1;}
   .score-dash{color:var(--ink-faint);}
-  .score-detail{display:none;padding:0 14px 14px 32px;flex-direction:column;gap:10px;border-top:1px dashed var(--border);}
+  .score-detail{display:none;padding:0 14px 14px 14px;flex-direction:column;gap:10px;border-top:1px dashed var(--border);}
   .score-row.open .score-detail{display:flex;}
-  .score-detail-item{padding-top:10px;}
-  .score-detail-item:first-child{padding-top:12px;border-top:none;}
-  .score-detail-item + .score-detail-item{border-top:1px dashed var(--border);}
-  .score-detail-item b{display:block;font-size:0.78rem;color:var(--ink);margin-bottom:3px;}
+  .score-detail-item{padding-top:10px;border-top:1px dashed var(--border);}
+  .score-detail-item.lead{padding-top:12px;border-top:none;}
   .score-detail-item p{margin:0 0 6px;font-size:0.85rem;color:var(--ink-muted);}
   .score-detail-item .jump{font-family:var(--font-mono);font-size:0.74rem;color:var(--accent-ink);background:var(--accent-bg);display:inline-block;width:fit-content;padding:4px 9px;border-radius:5px;text-decoration:none;}
 
@@ -156,10 +156,10 @@
   .score-row.band-medium{--band:#F5C83A;--band-ink:#102334;}
   .score-row.band-low{--band:#55C2F0;--band-ink:#102334;}
   .score-row[class*="band-"] > .score-main, .score-row.clickable[class*="band-"] > .score-main:hover{background:var(--band);}
-  .score-row[class*="band-"] .score-name, .score-row[class*="band-"] .score-chev, .score-row[class*="band-"] .col-label, .score-row[class*="band-"] .score-pages{color:var(--band-ink);}
+  .score-row[class*="band-"] .score-name, .score-row[class*="band-"] .score-pages{color:var(--band-ink);}
   .score-row[class*="band-"] .score-tag{background:rgba(255,255,255,.92);color:#102334;}
-  .band-word{font-size:0.62rem;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;color:var(--band-ink);opacity:0.85;flex:none;}
-  @media screen{ .score-row[class*="band-"] > .score-main{padding-top:14px;padding-bottom:14px;} }
+  /* the tag pills only appear in the Quick PDF, where the findings themselves are not printed */
+  @media screen{ .score-row[class*="band-"] > .score-main{padding-top:11px;padding-bottom:11px;} .score-tag{display:none;} }
   .score-detail-item p.issue{font-size:0.95rem;color:var(--ink);line-height:1.45;}
   .fixit{font-weight:800;color:var(--ink);letter-spacing:0.02em;}
   .flist{margin:2px 0 8px;padding-left:18px;columns:2;column-gap:18px;font-size:0.9rem;line-height:1.6;color:var(--ink);}
@@ -170,7 +170,7 @@
     .score-head{display:none;}
     .score-main{grid-template-columns:1fr;gap:6px;padding:12px 14px;}
     .col-label{display:inline;}
-    .score-main:has(.score-clean-badge){grid-template-columns:1fr auto;align-items:center;}
+    .score-main:has(.score-clean-badge), .score-row[class*="band-"] > .score-main{grid-template-columns:1fr auto;align-items:center;}
   }
 
   .hero{position:relative;width:100vw;margin-left:calc(50% - 50vw);margin-top:8px;}
@@ -192,7 +192,11 @@
   }
 
   .disclaimer{margin-top:18px;padding-top:14px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:6px;}
-  .attention + .disclaimer{border-top:none;padding-top:4px;}
+  @media screen{
+    .attention{padding-bottom:20px;}
+    .attention + .disclaimer{margin:-2px 0 -80px;padding:2px 0 44px;border-top:none;background:#f87700;box-shadow:0 0 0 100vmax #f87700;clip-path:inset(0 -100vmax);}
+    .attention + .disclaimer p{width:100%;max-width:760px;margin:0 auto;color:#102334;}
+  }
   .disclaimer p{margin:0;font-size:0.76rem;color:var(--ink-faint);line-height:1.5;}
 
   .coaching-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:26px 28px;}
@@ -204,19 +208,6 @@
   .recap-item .l{font-size:0.78rem;color:var(--ink-muted);margin-top:4px;}
 
 
-  /* ---- Also noticed: low-key suggestions beyond the checklist ---- */
-  .also{margin-top:16px;border:1px dashed var(--border);border-radius:10px;background:var(--surface);}
-  .also[hidden]{display:none;}
-  .also-head{display:flex;align-items:center;gap:8px;padding:11px 14px;cursor:pointer;font-size:0.84rem;font-weight:600;color:var(--ink-muted);}
-  .also-head .score-chev{font-size:0.72rem;}
-  .also.open .score-chev{transform:rotate(90deg);}
-  .also-sub{font-weight:400;color:var(--ink-faint);font-size:0.76rem;}
-  .also-body{display:none;padding:0 14px 12px 32px;flex-direction:column;}
-  .also.open .also-body{display:flex;}
-  .also-item{padding:9px 0;border-top:1px dashed var(--border);font-size:0.85rem;color:var(--ink-muted);}
-  .also-item:first-child{border-top:none;}
-  .also-item b{color:var(--ink);font-size:0.78rem;display:block;margin-bottom:2px;}
-  .also-item .jump{font-family:var(--font-mono);font-size:0.74rem;color:var(--accent-ink);background:var(--accent-bg);display:inline-block;padding:4px 9px;border-radius:5px;text-decoration:none;margin-top:4px;}
   .saved-note{font-size:0.78rem;color:var(--ink-faint);margin:0 2px 10px;}
   .saved-note[hidden]{display:none;}
   .where{font-size:0.8rem;color:var(--ink-muted);margin:2px 0 6px;}
@@ -259,21 +250,22 @@
     /* Only the small blocks stay unbroken - a big unbreakable block that
        doesn't fit remaining page space gets pushed whole onto a fresh page,
        leaving the rest of the prior page blank. */
-    .chips, .recap-item, .score-main, .score-detail-item, .also-item{ break-inside:avoid; page-break-inside:avoid; }
+    .chips, .recap-item, .score-main, .score-detail-item{ break-inside:avoid; page-break-inside:avoid; }
     .score-row{ break-inside:auto; }
     .results.visible{display:flex !important;flex-direction:column;}
     .results > .meta-card{order:1;}
     .results > .section-label{order:2;}
     .results > .scorecard{order:3;}
     .results > .legend{order:3;}
-    .results > .also{order:4;}
     .results > .inspector-only{order:5;}
     .results > .footnote{order:6;}
     .results > .disclaimer{order:7;}
     .meta-top{display:none;}
     .meta-assessment{border-top:none; margin-top:0; padding-top:0;}
     .scorecard{box-shadow:none; border:1px solid var(--border); break-inside:auto;}
-    .score-chev{display:none;}
+    .band-arrow{display:none;}
+    .score-tag{display:none;}
+    body.print-quick .score-tag{display:inline-block;}
     .score-detail{display:flex !important;}
     .meta-card, .coaching-card{box-shadow:none; border:1px solid var(--border);}
     .section-label{break-after:avoid; page-break-after:avoid; margin:12px 2px 6px;}
@@ -291,15 +283,14 @@
     .recap-item{padding:6px 9px;}
     .recap-item .n{font-size:1.15rem;}
     .score-main{padding:8px 10px;}
-    .score-detail{padding:0 10px 8px 22px; gap:5px;}
+    .score-detail{padding:0 10px 8px 10px; gap:5px;}
     .score-detail-item p{line-height:1.4;}
-    body.print-quick .score-detail, body.print-quick .also, body.print-quick .inspector-only,
+    body.print-quick .score-detail, body.print-quick .inspector-only,
     body.print-quick .footnote, body.print-quick .tip{display:none !important;}
     body.print-quick .score-main{padding:5px 10px;}
     body.print-quick .score-pages{display:inline;}
     body.print-quick .score-row{break-inside:avoid;}
-    .also-body{display:flex !important;}
-    .also-head .score-chev, .saved-note, .tip{display:none !important;}
+    .saved-note, .tip{display:none !important;}
     .footnote{margin-top:12px; padding-top:8px;}
     .disclaimer{margin-top:10px; padding-top:8px;}
     .disclaimer{gap:3px;}
@@ -390,11 +381,6 @@
     </div>
     <div class="legend"><b>✓</b> = no quality issue flagged</div>
 
-    <div class="also" id="also" hidden>
-      <div class="also-head" id="also-head"><span class="score-chev">▸</span><span>Also noticed</span><span class="also-sub" id="also-sub"></span></div>
-      <div class="also-body" id="also-body"></div>
-    </div>
-
     <div class="footnote" id="footnote"></div>
     <div class="attention"><img src="/static/attention.jpg" width="1100" height="1392" loading="lazy" decoding="async" alt="Attention: the art of exceptional reports. BASEline: every icon needs a focused, clean photo. BlackBOX: your chapter photo should prove operation. Insurance: every question needs an answer, and always document limitations."></div>
     <div class="disclaimer">
@@ -446,23 +432,15 @@ function saveResult(url, data){
     localStorage.setItem('nany:index', JSON.stringify(idx.slice(0, 5)));
   }catch(e){}
 }
-// Re-run guard: an "Also noticed" item that wasn't shown last time only appears if
-// the text it points at actually changed - otherwise fixing things would keep
-// surfacing "new" items that were there all along.
-function applyRerunGuard(url, data){
-  const prev = loadSaved(url);
-  if(!prev || !prev.data || !data.also_noticed) return;
-  const before = new Set((prev.data.also_noticed || []).map(i => i.anchor));
-  data.also_noticed = data.also_noticed.filter(i => {
-    if(before.has(i.anchor)) return true;
-    const ph = prev.data.anchor_hashes && prev.data.anchor_hashes[i.anchor];
-    const ch = data.anchor_hashes && data.anchor_hashes[i.anchor];
-    return !(ph && ch && ph === ch);
-  });
+// People paste the whole share message ("Your report is ready: https://..."); keep only the link.
+function cleanLink(raw){
+  const m = (raw || '').match(/https?:\/\/[^\s<>"']+/i);
+  return m ? m[0].replace(/[.,;:!?)\]]+$/, '') : (raw || '').trim();
 }
 
 async function runReview(){
-  const url = urlInput.value.trim();
+  const url = cleanLink(urlInput.value);
+  urlInput.value = url;
   if(!url){ showError('Paste a report URL first.'); return; }
   runBtn.disabled = true;
   runError.classList.remove('visible');
@@ -484,7 +462,6 @@ async function runReview(){
     });
     const data = await resp.json();
     if(!resp.ok){ throw new Error(data.error || 'Something went wrong.'); }
-    applyRerunGuard(url, data);
     saveResult(url, data);
     document.getElementById('saved-note').hidden = true;
     render(data);
@@ -520,7 +497,6 @@ const TAG_BUCKET = {
 };
 const SEV_RANK = {high:3, medium:2, low:1};
 const SEV_CLASS = {high:'sev-high', medium:'sev-medium', low:'sev-low'};
-const BAND_WORD = {high:'Liability', medium:'Credibility', low:'Polish'};
 
 // A finding that covers many fields (the blank Insurance fields) shows them as a list, not a paragraph.
 function esc(s){
@@ -531,10 +507,13 @@ function itemList(items){
   return '<ul class="flist">' + items.map(i => `<li>${esc(i.name)}${i.note ? ' <i>' + esc(i.note) + '</i>' : ''}</li>`).join('') + '</ul>';
 }
 
-// The fix as a full sentence, so the bold "Fix it." can follow it.
-function fixLine(fix){
-  const t = (fix || '').trim();
-  return t ? t + (/[.!?]$/.test(t) ? ' ' : '. ') : '';
+// One plain sentence per finding, then the bold "Fix it." (after the list, when there is one).
+function findingText(f){
+  let t = (f.issue || '').trim();
+  if(t && !/[.!?]$/.test(t)) t += '.';
+  const fixit = '<span class="fixit">Fix it.</span>';
+  const list = itemList(f.items);
+  return list ? `<p class="issue">${esc(t)}</p>${list}<p class="issue">${fixit}</p>` : `<p class="issue">${esc(t)} ${fixit}</p>`;
 }
 
 function worstSeverity(items){
@@ -580,16 +559,6 @@ function render(data){
   document.getElementById('count-medium').textContent = counts.medium;
   document.getElementById('count-low').textContent = counts.low;
   document.getElementById('footnote').textContent = findings.length + ' findings from this report · Nani concept build';
-  const alsoItems = data.also_noticed || [];
-  const alsoEl = document.getElementById('also');
-  alsoEl.hidden = alsoItems.length === 0;
-  document.getElementById('also-sub').textContent = alsoItems.length
-    ? ' (' + alsoItems.length + ') — suggestions, not required fixes' : '';
-  document.getElementById('also-body').innerHTML = alsoItems.map(i => {
-    const link = i.anchor ? `${data.source_url}#${i.anchor}` : null;
-    return `<div class="also-item"><b>${AREA_LABEL[i.area] || i.section || ''}</b>${i.issue}${i.fix ? ' — ' + i.fix : ''}${where(i) ? '<br>' + where(i) : ''}${link ? `<br><a class="jump" href="${link}" target="_blank" rel="noopener">${jumpLabel(i)}</a>` : ''}</div>`;
-  }).join('');
-
 
   const byArea = {};
   findings.forEach(f => {
@@ -623,7 +592,6 @@ function render(data){
       row.innerHTML = `
         <div class="score-main">
           <div class="score-name-wrap">
-            <span class="score-chev" style="visibility:hidden">▸</span>
             <span class="score-name">${label}</span>
           </div>
           <div class="score-col"><span class="score-clean-badge" title="No quality issue flagged" aria-label="No quality issue flagged">✓</span></div>
@@ -634,6 +602,7 @@ function render(data){
     }
 
     row.classList.add('clickable', 'band-' + worst);
+    row.dataset.worst = worst;
     // dedupe tags within this section, tracking the worst severity behind each
     const byTag = {};
     items.forEach(f => {
@@ -649,22 +618,17 @@ function render(data){
     row.innerHTML = `
       <div class="score-main">
         <div class="score-name-wrap">
-          <span class="score-chev">▸</span>
           <span class="score-name">${label}</span>
-          <span class="band-word">${BAND_WORD[worst]}</span>
           ${pagesLabel(items)}
         </div>
-        <div class="score-col"><span class="col-label">Review</span>${tagCellHtml(allTags)}</div>
+        <div class="score-col">${tagCellHtml(allTags)}<span class="band-arrow" aria-hidden="true"></span></div>
       </div>
       <div class="score-detail">
-        ${items.map(f => {
+        ${items.map((f, n) => {
           const link = f.anchor ? `${data.source_url}#${f.anchor}` : null;
           return `
-            <div class="score-detail-item">
-              <b>${f.tag || 'Missing info'}</b>
-              <p class="issue">${f.issue}</p>${itemList(f.items)}
-              <p>${f.why_it_matters}</p>
-              <p>${fixLine(f.fix)}<span class="fixit">Fix it.</span></p>
+            <div class="score-detail-item${n ? '' : ' lead'}" data-sev="${f.severity}">
+              ${findingText(f)}
               ${where(f)}${link ? `<a class="jump" href="${link}" target="_blank" rel="noopener">${jumpLabel(f)}</a>` : ''}
             </div>
           `;
@@ -679,17 +643,29 @@ function render(data){
     chip.onclick = () => {
       document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
       chip.classList.add('active');
+      // Each button shows only its own color: a section appears with just the findings of that
+      // level, and its band takes that level's color.
       const sev = chip.dataset.sev;
       sectionsEl.querySelectorAll('.score-row').forEach(row => {
         if(!row.classList.contains('clickable')){
           row.style.display = (sev === 'all') ? '' : 'none';
           return;
         }
-        const hasSev = [...row.querySelectorAll('.score-tag')].some(t => t.classList.contains(SEV_CLASS[sev]));
-        row.style.display = (sev === 'all' || hasSev) ? '' : 'none';
+        let shown = 0;
+        row.querySelectorAll('.score-detail-item').forEach(item => {
+          const on = sev === 'all' || item.dataset.sev === sev;
+          item.style.display = on ? '' : 'none';
+          item.classList.toggle('lead', on && shown === 0);
+          if(on) shown++;
+        });
+        row.style.display = shown ? '' : 'none';
+        row.classList.remove('band-high', 'band-medium', 'band-low');
+        row.classList.add('band-' + (sev === 'all' ? row.dataset.worst : sev));
       });
     };
   });
+  // a fresh set of results always starts on "All"
+  document.querySelectorAll('.chip').forEach(c => c.classList.toggle('active', c.dataset.sev === 'all'));
 
   document.getElementById('coach-text').textContent = data.coaching_summary || '';
   const recap = document.getElementById('coach-recap');
@@ -704,6 +680,7 @@ function render(data){
 
 runBtn.addEventListener('click', runReview);
 urlInput.addEventListener('keydown', e => { if(e.key === 'Enter') runReview(); });
+urlInput.addEventListener('paste', () => setTimeout(() => { urlInput.value = cleanLink(urlInput.value); }, 0));
 
 document.querySelectorAll('[data-set-view]').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -734,7 +711,6 @@ document.getElementById('new-btn').addEventListener('click', () => {
 document.getElementById('pdf-quick').addEventListener('click', () => printAs('quick'));
 document.getElementById('pdf-full').addEventListener('click', () => printAs('full'));
 
-document.getElementById('also-head').addEventListener('click', () => document.getElementById('also').classList.toggle('open'));
 
 (function restoreLast(){
   try{

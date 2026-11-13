@@ -73,6 +73,16 @@ reports.
   company/account on Inspectagram; verify if a report from another company 403s.
 
 ## Self-Improvement Log
+- 2026-11-13: Owner wants each finding as ONE plain sentence plus "Fix it." No why/fix lines, no tag pills,
+  no "####", dashes, symbols or page numbers in the sentence. The voice step now writes only `issue`.
+  A small model ignores "never mention the placeholder" about one time in three, so that part is done in
+  code: the filler is stripped from what the voice model sees, the tag is sent as "Not filled in", and
+  only the "You didn't put ..." sentence is kept (`_FILLER_RE`, `_only_whats_missing`, `_tidy`).
+- 2026-11-13: Exterior Summary entries no longer need a location (Interior still does). The Exterior
+  finding is still built so the review's input stays identical; it is only left out of the result.
+  "Also noticed" is no longer shown. The link box keeps only the https link from whatever is pasted.
+- 2026-11-13: Old wording inside the new layout means a saved result: the page re-shows the last result
+  from the browser. Re-run the report before assuming the voice step failed.
 - 2026-11-12: **Do not edit the review prompt (`SYSTEM_PROMPT`) to add rules or change wording.**
   Tested on 5 reports: every edit, even one added rule, moved unrelated findings around (merged,
   dropped, shifted to "Also noticed", new false alarms). New rules go in code on the review's output

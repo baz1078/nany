@@ -10,6 +10,7 @@ Then open http://127.0.0.1:5057
 """
 
 import os
+import re
 import sys
 import time
 
@@ -22,6 +23,15 @@ import admin_stats
 
 app = Flask(__name__)
 
+_LINK_RE = re.compile(r"https?://[^\s<>\"']+", re.IGNORECASE)
+
+
+def clean_link(raw):
+    """People paste the whole share message ("Your report is ready: https://..."); keep only the link."""
+    raw = raw if isinstance(raw, str) else ""
+    m = _LINK_RE.search(raw)
+    return m.group(0).rstrip(".,;:!?)]") if m else raw.strip()
+
 
 @app.route("/")
 def index():
@@ -33,7 +43,7 @@ def index():
 @app.route("/api/review", methods=["POST"])
 def api_review():
     body = request.get_json(silent=True) or {}
-    url = body.get("url", "").strip()
+    url = clean_link(body.get("url", ""))
     src = body.get("src")
     if not url:
         return jsonify({"error": "Paste a report URL first."}), 400
