@@ -148,57 +148,80 @@ stood out as solid"
 # It only ever sees the findings, never the report.
 VOICE_MODEL = "claude-haiku-5-5"
 
-VOICE_PROMPT = """You reword quality-check findings about a home inspection report. Another reviewer already \
-decided what is wrong; you change only how it is said. Never add, drop, merge, split or reorder findings, and never \
-change a fact or a name.
+VOICE_PROMPT = """You turn quality-check findings about a home inspection report into very short lines for the \
+inspector. Another reviewer already decided what is wrong; you change only how it is said. Never add, drop, merge or \
+reorder findings, and never change a fact.
 
-The voice: a firm, experienced mentor talking straight to a trainee inspector. Short, clean, direct. Never rude.
+For each finding write "lines": a list of one or more lines, each {"item": "...", "what": "..."}.
+- "item": the thing the line is about, by the name the inspector knows it: the entry or field name in plain \
+words, 1 to 4 words, no quotes, no brackets, no "(s)". "Heating Unit", "Bathroom GFCI", "Sink Drain", \
+"Inspection date".
+- "what": what is wrong with it, 2 to 6 words, ending with a period. Start with "Missing" whenever something is \
+missing: "Missing age.", "Missing photo.", "Missing answer.", "Missing the action.", "Missing from Summary."
+- When two things disagree, say that they disagree, or say both sides in two tiny sentences: "Icon and note \
+disagree.", "Two different dates.", "Says present. Bathroom says missing."
+- A finding tagged "Not filled in" means the real thing was never put in. Say what is missing ("Missing age.", \
+"Missing SOP name.") and nothing about what is sitting there in its place.
+- One line per finding. Use more than one line only when the finding names several separate entries or fields; \
+then give each one its own line.
+- Plain words only. No symbols, dashes, colons, semicolons, brackets, slashes, emoji, icon characters or page \
+numbers. Never write "checkbox", "prefix", "placeholder", "template" or "body".
+- Say only what is wrong: no reasons, no consequences, no instructions, no questions.
+- Use only what that finding's own text says. Do not take sides when two things disagree.
 
-For each finding write "issue": what is wrong, in plain everyday words, straight to the point.
-- One or two short sentences, 25 words at most. Where it fits, close with a short pointed question ("Why isn't it \
-in the Summary?", "Which is it?", "Where is it?").
-- Say "you" and "your". Aim at the report, never at the person. No insults, no profanity, no ALL CAPS, no \
-exclamation marks.
-- Say only what is wrong. Never say why it matters, what the client will think, how it makes anyone look, or how \
-to fix it. Never write "Fix it." because the page adds that.
-- Say it in your own plain words; do not copy text out of the report.
-- A finding tagged "Not filled in" means the inspector never put the real thing in. Write one sentence that \
-starts with "You didn't put" and says what is missing and where: "You didn't put the age of the AC unit in the \
-Insurance section." Nothing else: no question, and no word about what is sitting there in its place.
-- No symbols or markup: no dashes, colons, semicolons, brackets, parentheses, slashes, emoji or icon characters. \
-Write "an attention icon", never "[attention icon]".
-- No page numbers. The page shows those separately.
-- Never write "checkbox", "prefix", "prefixed", "placeholder", "filler", "template" or "body". Say "the report" \
-or name the section ("the Bathroom section").
-- Name an entry only when the inspector needs it to know which one, and then always put its name in single \
-quotes, exactly as the finding gives it: 'Furnace', 'Hot Water Unit(s)'. A name in quotes may keep its own \
-punctuation. If the finding lists several entries, keep every name, even if that runs past 25 words.
-- Each finding stands alone. Use only what that finding's own text says.
-- Do not take sides. When two things disagree, say that they disagree and leave the choice to the inspector.
+Also write "overall": exactly two short sentences, under 35 words, plain and firm. The verdict first, then the \
+main things to fix. No questions. If there are no findings, say the report is ready to send.
 
-Also write "overall": exactly two short sentences, under 35 words, in the same voice and under the same rules. \
-The verdict first, then the main things to fix. No questions. If there are no findings, say the report is ready \
-to send.
-
-Examples of the voice:
-"You found a missing GFCI in the bathroom. Why isn't it in the Summary?"
-"Insurance says the bathroom GFCI is present. The Bathroom section says there isn't one. Which is it?"
-"You didn't put the age of the AC unit in the Insurance section."
-"'Furnace' has an attention icon, but its note says Observation. Which is it?"
-"The water heater has no photo."
-overall "Close, but not ready to send. One safety item is missing from the Summary and the Insurance section has gaps."
+Examples:
+{"item": "Hot Water Unit", "what": "Missing manufacture date."}
+{"item": "Toilet", "what": "Missing the summary note."}
+{"item": "Bathroom GFCI", "what": "Says present. Bathroom says missing."}
+{"item": "Furnace", "what": "Icon and note disagree."}
+{"item": "Extraction Fan", "what": "Missing from Summary."}
+{"item": "Inspection date", "what": "Two different dates."}
 
 Return ONLY valid JSON, no markdown fencing, one entry per input finding with the same "i":
-{"overall": "...", "findings": [{"i": 0, "issue": "..."}]}"""
+{"overall": "...", "findings": [{"i": 0, "lines": [{"item": "...", "what": "..."}]}]}"""
+
+# One comment per flagged section, shown under its list. Starter lines: the owner and Lucas edit this list.
+# Picked in code (never written by the model) so the tone is always one that was approved.
+SECTION_COMMENTS = {
+    "high": [
+        "Not terrible... but not exactly a standing ovation for attention to detail.",
+        "Good effort, but the attention to detail seems to have left the building.",
+        "This section carries the most weight. Tighten it up.",
+        "Close doesn't count on this page. Finish it.",
+        "A sharp client spots these in a minute. Beat them to it.",
+    ],
+    "medium": [
+        "Small stuff. Still your name on the report.",
+        "Almost there. Clean these up and move on.",
+        "Nothing scary here, just unfinished.",
+        "Quick fixes. Knock them out.",
+        "Details like these are what make a report look sharp.",
+    ],
+}
 
 
-_NUMBER_WORDS = ["Zero", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Eleven",
-                 "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen", "Twenty"]
+def section_comments(findings, seed=""):
+    """area -> one comment. The same report always gets the same lines, and no line repeats until the list runs out."""
+    worst = {}
+    for f in findings or []:
+        area = f.get("area") or "other"
+        if f.get("severity") == "high" or area not in worst:
+            worst[area] = "high" if f.get("severity") == "high" or worst.get(area) == "high" else "medium"
+    start = int(hashlib.md5((seed or "").encode("utf-8")).hexdigest(), 16)
+    out, used = {}, {"high": 0, "medium": 0}
+    for area, level in worst.items():
+        pool = SECTION_COMMENTS[level]
+        out[area] = pool[(start + used[level]) % len(pool)]
+        used[level] += 1
+    return out
 
 
 def _insurance_list(findings, blanks):
-    """The blank Insurance fields as a list for the page to show, taken from the code scan and limited to
-    the fields the review's own Insurance finding names. Returns (finding, items) or (None, None)."""
+    """The blank Insurance fields, taken from the code scan and limited to the fields the review's own
+    Insurance finding names. Returns (finding, items) or (None, None)."""
     for f in findings:
         if f.get("area") != "insurance" or f.get("tag") != "Missing info":
             continue
@@ -224,29 +247,47 @@ def _no_questions(s):
     return " ".join(parts)
 
 
-def _only_whats_missing(s):
-    """A 'not filled in' finding says what is missing and nothing about what was left in its place."""
-    parts = re.split(r"(?<=[.?!])\s+", s.strip())
-    lead = [p for p in parts if p.startswith("You didn't put")]
-    if lead:
-        return lead[0]
-    return " ".join(p for p in parts if not re.search(r"placeholder|#{3,}", p, re.IGNORECASE)) or s
-
-
 def _tidy(s):
-    """Last pass on a reworded sentence: no page references, dashes, icon characters or trailing 'Fix it.'."""
+    """Last pass on reworded text: no page references, dashes or icon characters."""
     s = re.sub(r"\s*\((?:see\s+)?(?:pages?|pp?\.)[\s-]*\d+(?:\s*(?:,|and|&|-)\s*\d+)*\)", "", s, flags=re.IGNORECASE)
     s = re.sub(r"\s+[—–]\s+|\s+-\s+", ", ", s)
     s = re.sub(r"[⚠◻◼⬜✅️⠀]", "", s)
     s = re.sub(r"\b([Tt])he body(?: of the report)?\b", r"\1he report", s)
-    s = re.sub(r"\s*\bFix it\.?\s*$", "", s, flags=re.IGNORECASE)
     return re.sub(r"\s{2,}", " ", s).strip()
 
 
+def _plain_name(s):
+    """An entry name as a person would say it: 'Heating Unit(s) :' -> 'Heating Unit'."""
+    s = re.sub(r"\(s\)", "", _tidy(s if isinstance(s, str) else ""))
+    return re.sub(r"\s{2,}", " ", s).strip(" :.,;'\"")
+
+
+def _line(item, what, anchor=None, area=None):
+    """One short line for the page: 'Item: what is wrong.' Returns None when either half is empty."""
+    item, what = _plain_name(item), _tidy(what if isinstance(what, str) else "").strip(" :;,")
+    if area and item.lower().startswith(area.lower() + " ") and len(item.split()) > 1:
+        item = item[len(area) + 1:]  # 'Insurance GFCI' inside the Insurance section is just 'GFCI'
+    if re.search(r"placeholder|#{3,}", what, re.IGNORECASE):
+        what = "Not filled in"
+    what = re.sub(r"\bbody\b", "report", re.sub(r"\bBody\b", "Report", what))
+    if not item or not what:
+        return None
+    what = what[0].upper() + what[1:]
+    out = {"item": item[:60], "what": what if what[-1] in ".?!" else what + "."}
+    if anchor:
+        out["anchor"] = anchor
+    return out
+
+
+def _set_lines(f, lines):
+    f["lines"] = lines
+    f["issue"] = " ".join(f"{l['item']}: {l['what']}" for l in lines)
+
+
 def apply_voice(result, client=None, insurance_blanks=None):
-    """Reword each model-written finding into one plain sentence, plus the one-line verdict. Wording only:
-    which findings exist, their order, tags, severity, sections and links are never touched, and code-made
-    findings already carry the voice. Any failure leaves the original wording in place."""
+    """Turn each model-written finding into short 'Item: what is wrong.' lines, plus the verdict. Wording
+    only: which findings exist, their order, tags, severity, sections and links are never touched, and
+    code-made findings already carry their lines. Any failure leaves the original wording in place."""
     if os.environ.get("NANI_VOICE", "").lower() == "off":
         return result
     items = [f for f in result.get("findings") or [] if f.get("source") != "code"]
@@ -257,43 +298,53 @@ def apply_voice(result, client=None, insurance_blanks=None):
                              "issue": f.get("issue"), "why": f.get("why_it_matters"), "fix": f.get("fix")}
                             for i, f in enumerate(items)]}
     for entry, f in zip(payload["findings"], items):
-        if f is listed:  # this one gets fixed wording below; the voice model only needs the gist for its verdict
+        if f is listed:  # its lines come from the code scan below; the voice model only needs the gist
             entry["issue"] = f"{len(names)} fields in The Insurance section are blank or say only 'n/a'."
         if entry["tag"] == "Placeholder text":  # the inspector should hear what is missing, not what was left there
             entry["tag"] = "Not filled in"
             for k in ("issue", "why", "fix"):
                 entry[k] = _FILLER_RE.sub("(nothing filled in)", entry[k] or "")
-    try:
-        client = client or anthropic.Anthropic(timeout=90.0, max_retries=1)
-        message = client.messages.create(
-            model=VOICE_MODEL, max_tokens=12000, system=VOICE_PROMPT,
-            messages=[{"role": "user", "content": json.dumps(payload, ensure_ascii=False)}],
-            # A rewording job: no thinking, low effort. Measured 2026-11-12: about 5s this way, against
-            # 12-22s whenever the model chose to think. Effort goes via extra_body because the pinned SDK
-            # (0.75.0) predates the output_config argument.
-            thinking={"type": "disabled"},
-            extra_body={"output_config": {"effort": "low"}})
-        raw = "".join(b.text for b in message.content if b.type == "text").strip()
-        if raw.startswith("```"):
-            raw = raw.split("\n", 1)[1].rsplit("```", 1)[0]
-        out = json.loads(raw.strip())
-        by_i = {int(o["i"]): o for o in out.get("findings", [])}
-        if set(by_i) != set(range(len(items))) or not all(
-                isinstance(o.get("issue"), str) and o["issue"].strip() for o in by_i.values()):
-            print("[nani] voice step skipped: incomplete rewrite", file=sys.stderr, flush=True)
-            return result  # keep the original wording rather than mix two voices
-        for i, f in enumerate(items):
-            f["issue"] = _tidy(by_i[i]["issue"])
-            if f.get("tag") == "Placeholder text":
-                f["issue"] = _only_whats_missing(f["issue"])
-        if listed is not None:  # the page lists the names, so this finding gets fixed wording that never repeats them
-            count = _NUMBER_WORDS[len(names)] if len(names) < len(_NUMBER_WORDS) else str(len(names))
-            listed["issue"] = f"{count} Insurance fields have no answer."
-            listed["items"] = names
-        if isinstance(out.get("overall"), str) and out["overall"].strip():
-            result["overall_assessment"] = _no_questions(_tidy(out["overall"]))
-    except Exception as exc:  # never let the wording step break a review; say so in the server log
-        print(f"[nani] voice step skipped: {type(exc).__name__}: {str(exc)[:200]}", file=sys.stderr, flush=True)
+    if listed is not None:  # one line per blank field, straight from the code scan
+        _set_lines(listed, [_line(n["name"], "Says n/a" if n["note"] else "Missing answer") for n in names])
+    by_i, overall = {}, None
+    for attempt in (1, 2):  # the small model now and then returns a broken or partial reply; ask once more
+        try:
+            client = client or anthropic.Anthropic(timeout=90.0, max_retries=1)
+            message = client.messages.create(
+                model=VOICE_MODEL, max_tokens=12000, system=VOICE_PROMPT,
+                messages=[{"role": "user", "content": json.dumps(payload, ensure_ascii=False)}],
+                # A rewording job: no thinking, low effort. Measured 2026-11-12: about 5s this way, against
+                # 12-22s whenever the model chose to think. Effort goes via extra_body because the pinned SDK
+                # (0.75.0) predates the output_config argument.
+                thinking={"type": "disabled"},
+                extra_body={"output_config": {"effort": "low"}})
+            raw = "".join(b.text for b in message.content if b.type == "text").strip()
+            if raw.startswith("```"):
+                raw = raw.split("\n", 1)[1].rsplit("```", 1)[0]
+            out = json.loads(raw.strip())
+            for o in out.get("findings") or []:
+                try:
+                    i = int(o["i"])
+                    got = [_line(l.get("item"), l.get("what"), area=items[i].get("area"))
+                           for l in o.get("lines") or [] if isinstance(l, dict)]
+                except (KeyError, IndexError, TypeError, ValueError):
+                    continue
+                if 0 <= i < len(items) and i not in by_i and any(got):
+                    by_i[i] = [l for l in got if l][:12]
+            if overall is None and isinstance(out.get("overall"), str) and out["overall"].strip():
+                overall = _no_questions(_tidy(out["overall"]))
+        except Exception as exc:  # never let the wording step break a review; say so in the server log
+            print(f"[nani] voice step try {attempt} failed: {type(exc).__name__}: {str(exc)[:200]}", file=sys.stderr, flush=True)
+        if len(by_i) == len(items):
+            break
+    for i, f in enumerate(items):
+        if f is not listed and i in by_i:
+            _set_lines(f, by_i[i])
+    if overall:
+        result["overall_assessment"] = overall
+    kept = sum(1 for i, f in enumerate(items) if f is not listed and i not in by_i)
+    if kept:  # those findings show their original sentence
+        print(f"[nani] voice step skipped: {kept} of {len(items)} findings kept their original wording", file=sys.stderr, flush=True)
     return result
 
 
@@ -439,9 +490,12 @@ def _first_anchor(line):
     return m.group(1) if m else None
 
 
-def _code_finding(area, tag, severity, section, issue, anchor, why, fix):
-    return {"section": section, "area": area, "tag": tag, "severity": severity, "issue": issue,
-            "anchor": anchor, "why_it_matters": why, "fix": fix, "source": "code"}
+def _code_finding(area, tag, severity, section, issue, anchor, why, fix, lines=None):
+    out = {"section": section, "area": area, "tag": tag, "severity": severity, "issue": issue,
+           "anchor": anchor, "why_it_matters": why, "fix": fix, "source": "code"}
+    if lines:
+        out["lines"] = [l for l in lines if l]
+    return out
 
 
 _INS_HEADING_RE = re.compile(r"(Overview|System|Systems|Q&A)$|^Kitchen & Bathroom$")
@@ -504,8 +558,11 @@ def find_blank_summary_entries(text):
         else:
             issue = f"'{name}' in the Summary says what's wrong, but not what to do about it."
             fix = "Add the action, or remove the entry."
+        what = (f"{len(items)} entries, nothing written" if len(items) > 1
+                else "Nothing written" if kind == "nothing" else "Missing the action")
         out.append(_code_finding("summary", "Missing info", "medium", f"The Summary — {name}", issue, anchor,
-                                 "A flagged item has to give the client something to act on.", fix))
+                                 "A flagged item has to give the client something to act on.", fix,
+                                 lines=[_line(name, what)]))
     return out
 
 
@@ -527,7 +584,8 @@ def find_empty_pages(text):
             out.append(_code_finding(
                 area, "Unused pages", "low", f"{header.rstrip(' +') or 'Report'} — page {num}",
                 f"Page {num} is empty.",
-                page, "An empty page looks unfinished to the client.", "Delete the empty page."))
+                page, "An empty page looks unfinished to the client.", "Delete the empty page.",
+                lines=[_line(f"Page {num}", "Empty page")]))
     return out
 
 
@@ -574,7 +632,8 @@ def find_missing_locations(text):
             f"{len(items)} {chapter} Summary {'entry does not' if len(items) == 1 else 'entries do not'} say where: "
             + ", ".join(names) + ". Where?",
             next((a for _, a in items if a), None),
-            "If the client can't find it, they can't fix it.", "Add an 'L:' location to each entry."))
+            "If the client can't find it, they can't fix it.", "Add an 'L:' location to each entry.",
+            lines=[_line(n, "Missing location", a) for n, a in items]))
     return out
 
 
@@ -713,6 +772,10 @@ def review_report(url):
     pages = page_map(text)
     for item in result.get("findings", []) + result.get("also_noticed", []):
         item["page"] = pages.get(item.get("anchor"))
+        for line in item.get("lines") or []:
+            if line.get("anchor"):
+                line["page"] = pages.get(line["anchor"])
+    result["section_comments"] = section_comments(result.get("findings"), result["report_hash"])
     return result
 
 

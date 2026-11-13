@@ -16,6 +16,7 @@
     --sev-medium:#96660A; --sev-medium-bg:#FBEDD3; --sev-medium-bd:#EACB88;
     --sev-low:#3E6096; --sev-low-bg:#E6EDF6; --sev-low-bd:#B9CBE6;
     --good:#2E7D4F; --good-bg:#E1F1E6; --good-bd:#AED9BE;
+    --red:#E85140; --yellow:#FCCC2A; --green:#34BB09;
     --danger:#B93A22; --danger-bg:#FBE5E0;
     --shadow: 0 1px 2px rgba(22,35,61,0.06), 0 8px 24px -12px rgba(22,35,61,0.12);
     --font-display:'Figtree', -apple-system, 'Segoe UI', sans-serif;
@@ -58,7 +59,7 @@
   .pdf-btn:hover{border-color:var(--accent);color:var(--accent-ink);}
   .pdf-btn[hidden], .pdf-btns[hidden]{display:none;}
   .pdf-btns{display:inline-flex;gap:8px;}
-  .score-pages{display:none;font-size:0.74rem;font-weight:500;color:var(--ink-faint);min-width:0;}
+  .sec-meta{display:none;font-size:0.74rem;font-weight:500;min-width:0;}
 
   /* ---- run panel ---- */
   .run-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:22px;box-shadow:var(--shadow);margin-bottom:18px;}
@@ -73,7 +74,7 @@
   .run-row input[type=text]:focus{outline:2px solid var(--accent);outline-offset:0;border-color:var(--accent);}
   .run-row button{
     font-family:var(--font-body);font-weight:700;font-size:0.92rem;
-    background:var(--accent);color:#1a1204;border:none;border-radius:8px;
+    background:var(--green);color:var(--ink);border:1px solid rgba(22,35,61,.45);border-radius:8px;
     padding:12px 22px;cursor:pointer;white-space:nowrap;
   }
   .run-row button:disabled{opacity:0.6;cursor:default;}
@@ -97,81 +98,39 @@
   .meta-assessment{margin-top:14px;padding-top:14px;border-top:1px dashed var(--border);font-size:0.92rem;color:var(--ink-muted);}
 
   .chips{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;}
-  .chip{display:flex;align-items:baseline;gap:7px;border:1px solid var(--border);border-radius:9px;padding:8px 14px;cursor:pointer;background:var(--surface-2);transition:transform .1s ease, box-shadow .1s ease;user-select:none;}
-  .chip:hover{transform:translateY(-1px);box-shadow:var(--shadow);}
-  .chip .n{font-family:var(--font-display);font-weight:800;font-size:1.5rem;line-height:1;}
-  .chip .l{font-size:0.72rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--ink-muted);font-weight:600;}
-  .chip[data-sev="high"]{background:var(--sev-high-bg);border-color:color-mix(in srgb,var(--sev-high) 40%,transparent);}
-  .chip[data-sev="high"] .n, .chip[data-sev="high"] .l{color:var(--sev-high);}
-  .chip[data-sev="medium"]{background:var(--sev-medium-bg);border-color:color-mix(in srgb,var(--sev-medium) 40%,transparent);}
-  .chip[data-sev="medium"] .n, .chip[data-sev="medium"] .l{color:var(--sev-medium);}
-  .chip[data-sev="low"]{background:var(--sev-low-bg);border-color:color-mix(in srgb,var(--sev-low) 40%,transparent);}
-  .chip[data-sev="low"] .n, .chip[data-sev="low"] .l{color:var(--sev-low);}
-  .chip[data-sev="all"] .n{color:var(--ink);}
-  .chip.active{background:var(--surface);border-color:var(--ink-faint);box-shadow:var(--shadow);}
-  .chip.active[data-sev="high"]{background:var(--sev-high-bg);border-color:var(--sev-high);box-shadow:0 0 0 1px var(--sev-high);}
-  .chip.active[data-sev="medium"]{background:var(--sev-medium-bg);border-color:var(--sev-medium);box-shadow:0 0 0 1px var(--sev-medium);}
-  .chip.active[data-sev="low"]{background:var(--sev-low-bg);border-color:var(--sev-low);box-shadow:0 0 0 1px var(--sev-low);}
+  /* two levels, in the report's own words: yellow = Attention, red = Immediate attention */
+  .chip{display:inline-flex;align-items:baseline;gap:8px;font-family:var(--font-body);font-size:0.95rem;font-weight:600;border:1px solid rgba(22,35,61,.45);border-radius:9px;padding:10px 16px;cursor:pointer;user-select:none;}
+  .chip .n{font-weight:800;}
+  .chip[data-sev="medium"]{background:var(--yellow);color:var(--ink);}
+  .chip[data-sev="high"]{background:var(--red);color:#fff;}
+  .chip.active{box-shadow:0 0 0 3px var(--ink);}
+  .chip.dim{opacity:0.45;}
+  .chip:focus-visible{outline:2px solid var(--ink);outline-offset:2px;}
+  @media screen{ .meta-assessment{display:none;} }
 
   .section-label{font-family:var(--font-mono);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--ink-faint);margin:22px 2px 8px;}
 
-  /* ---- scorecard: the main "quick read" view ---- */
-  .scorecard{display:flex;flex-direction:column;border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--surface);box-shadow:var(--shadow);}
-  .score-head{display:grid;grid-template-columns:1.3fr 2fr;gap:10px;padding:10px 14px;background:var(--surface-2);font-family:var(--font-mono);font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--ink-faint);font-weight:600;}
-  .score-row{border-top:1px solid var(--border);}
-  .score-row:first-child{border-top:none;}
-  .score-main{display:grid;grid-template-columns:1.3fr 2fr;gap:10px;padding:12px 14px;align-items:center;}
-  .score-row.clickable .score-main{cursor:pointer;}
-  .score-row.clickable .score-main:hover{background:var(--surface-2);}
-  .score-name-wrap{display:flex;align-items:center;gap:8px;min-width:0;}
-  /* open/close arrow: a white button at the right end of a flagged section's band */
-  .band-arrow{margin-left:auto;flex:none;width:32px;height:32px;border-radius:50%;background:#fff;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(16,35,52,.3);transition:transform .15s ease;}
+  /* ---- sections: one card each. A colored band, the short numbered lines, then one comment ---- */
+  .sections{margin-top:18px;}
+  .sec{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:var(--shadow);margin-bottom:14px;}
+  .sec.band-high{--band:var(--red);--band-ink:#fff;}
+  .sec.band-medium{--band:var(--yellow);--band-ink:var(--ink);}
+  .sec-band{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--band);color:var(--band-ink);cursor:pointer;}
+  .sec-name{font-family:var(--font-display);font-weight:700;font-size:1.5rem;line-height:1.1;}
+  .band-arrow{margin-left:auto;flex:none;width:36px;height:36px;border-radius:50%;background:#fff;border:1.5px solid #102334;display:inline-flex;align-items:center;justify-content:center;transition:transform .15s ease;}
   .band-arrow::before{content:"";width:9px;height:9px;border-right:3px solid #102334;border-bottom:3px solid #102334;transform:translateY(-2px) rotate(45deg);}
-  .score-row.open .band-arrow{transform:rotate(180deg);}
-  .status-dot{width:9px;height:9px;border-radius:50%;flex:none;}
-  .status-dot.sev-high{background:var(--sev-high);}
-  .status-dot.sev-medium{background:var(--sev-medium);}
-  .status-dot.sev-low{background:var(--sev-low);}
-  .status-dot.clean{background:var(--good);}
-  .score-name{font-weight:700;font-size:0.92rem;color:var(--ink);white-space:nowrap;flex:none;}
-  .score-col{display:flex;flex-wrap:wrap;gap:4px;align-items:center;}
-  .col-label{display:none;font-family:var(--font-mono);font-size:0.62rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--ink-faint);margin-right:2px;}
-  .score-tag{display:inline-block;font-size:0.76rem;font-weight:600;padding:2px 8px;border-radius:5px;}
-  .score-tag.sev-high{color:var(--sev-high);background:var(--sev-high-bg);}
-  .score-tag.sev-medium{color:var(--sev-medium);background:var(--sev-medium-bg);}
-  .score-tag.sev-low{color:var(--sev-low);background:var(--sev-low-bg);}
-  .score-clean-badge{display:inline-flex;align-items:center;gap:4px;font-size:1.1rem;font-weight:700;color:var(--good);line-height:1;}
-  .legend{margin:10px 2px 0;font-size:0.78rem;color:var(--ink-muted);display:flex;align-items:center;gap:6px;}
-  .legend b{color:var(--good);font-size:1rem;line-height:1;}
-  .score-dash{color:var(--ink-faint);}
-  .score-detail{display:none;padding:0 14px 14px 14px;flex-direction:column;gap:10px;border-top:1px dashed var(--border);}
-  .score-row.open .score-detail{display:flex;}
-  .score-detail-item{padding-top:10px;border-top:1px dashed var(--border);}
-  .score-detail-item.lead{padding-top:12px;border-top:none;}
-  .score-detail-item p{margin:0 0 6px;font-size:0.85rem;color:var(--ink-muted);}
-  .score-detail-item .jump{font-family:var(--font-mono);font-size:0.74rem;color:var(--accent-ink);background:var(--accent-bg);display:inline-block;width:fit-content;padding:4px 9px;border-radius:5px;text-decoration:none;}
-
-  /* severity bands: a flagged section's header takes the color of its most serious finding */
-  .score-row.band-high{--band:#E8503F;--band-ink:#fff;}
-  .score-row.band-medium{--band:#F5C83A;--band-ink:#102334;}
-  .score-row.band-low{--band:#55C2F0;--band-ink:#102334;}
-  .score-row[class*="band-"] > .score-main, .score-row.clickable[class*="band-"] > .score-main:hover{background:var(--band);}
-  .score-row[class*="band-"] .score-name, .score-row[class*="band-"] .score-pages{color:var(--band-ink);}
-  .score-row[class*="band-"] .score-tag{background:rgba(255,255,255,.92);color:#102334;}
-  /* the tag pills only appear in the Quick PDF, where the findings themselves are not printed */
-  @media screen{ .score-row[class*="band-"] > .score-main{padding-top:11px;padding-bottom:11px;} .score-tag{display:none;} }
-  .score-detail-item p.issue{font-size:0.95rem;color:var(--ink);line-height:1.45;}
-  .fixit{font-weight:800;color:var(--ink);letter-spacing:0.02em;}
-  .flist{margin:2px 0 8px;padding-left:18px;columns:2;column-gap:18px;font-size:0.9rem;line-height:1.6;color:var(--ink);}
-  .flist li{break-inside:avoid;}
-  .flist i{font-style:normal;color:var(--ink-faint);font-size:0.78rem;}
-
-  @media (max-width:640px){
-    .score-head{display:none;}
-    .score-main{grid-template-columns:1fr;gap:6px;padding:12px 14px;}
-    .col-label{display:inline;}
-    .score-main:has(.score-clean-badge), .score-row[class*="band-"] > .score-main{grid-template-columns:1fr auto;align-items:center;}
-  }
+  .sec:not(.open) .band-arrow{transform:rotate(-90deg);}
+  .sec-band:focus-visible{outline:3px solid var(--ink);outline-offset:-3px;}
+  .sec-list{margin:0;padding:12px 16px 12px 40px;font-size:1rem;line-height:1.5;color:var(--ink);}
+  .sec-list li{padding:1px 0;}
+  .sec-list a, .sec-list .row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;color:inherit;text-decoration:none;}
+  .sec-list a:hover .t{text-decoration:underline;}
+  .sec-list .pg{flex:none;font-size:0.78rem;color:var(--ink-faint);white-space:nowrap;}
+  .sec-say{border-top:6px solid var(--bg);padding:14px 16px;font-size:1.12rem;line-height:1.3;color:var(--ink);}
+  .sec:not(.open) .sec-list, .sec:not(.open) .sec-say{display:none;}
+  .clean-line{margin:2px 2px 0;font-size:0.84rem;color:var(--ink-muted);}
+  .clean-line b{color:var(--good);}
+  .clean-line:empty{display:none;}
 
   .hero{position:relative;width:100vw;margin-left:calc(50% - 50vw);margin-top:8px;}
   .hero img{display:block;width:100%;max-width:420px;height:auto;}
@@ -210,8 +169,6 @@
 
   .saved-note{font-size:0.78rem;color:var(--ink-faint);margin:0 2px 10px;}
   .saved-note[hidden]{display:none;}
-  .where{font-size:0.8rem;color:var(--ink-muted);margin:2px 0 6px;}
-  .where i{font-style:normal;font-weight:600;color:var(--ink);}
   .tip{font-size:0.78rem;color:var(--ink-muted);background:var(--surface-2);border-radius:8px;padding:8px 12px;margin:0 0 4px;}
   .footnote{margin-top:28px;font-size:0.76rem;color:var(--ink-faint);font-family:var(--font-mono);border-top:1px solid var(--border);padding-top:14px;}
   [data-view="inspector"] .admin-only{display:none;}
@@ -238,7 +195,6 @@
     .print-brand .pb-word{font-size:2.3rem;line-height:1;color:#fff;}
     .print-brand .pb-meta{margin-top:7px;font-size:0.72rem;color:#C9D4DE;display:flex;gap:14px;flex-wrap:wrap;}
     .print-brand .pb-logo{height:52px;width:auto;display:block;}
-    .score-head{background:#102334 !important;color:#fff !important;}
     .section-label{color:#F5003B;font-family:'Montserrat',sans-serif;font-weight:800;}
     .chip .n, .recap-item .n{font-family:'Montserrat',sans-serif;font-weight:800;}
     .subtitle{display:none;}
@@ -250,23 +206,22 @@
     /* Only the small blocks stay unbroken - a big unbreakable block that
        doesn't fit remaining page space gets pushed whole onto a fresh page,
        leaving the rest of the prior page blank. */
-    .chips, .recap-item, .score-main, .score-detail-item{ break-inside:avoid; page-break-inside:avoid; }
-    .score-row{ break-inside:auto; }
+    .chips, .recap-item, .sec-band, .sec-list li, .sec-say{ break-inside:avoid; page-break-inside:avoid; }
+    .sec-band{ break-after:avoid; page-break-after:avoid; }
     .results.visible{display:flex !important;flex-direction:column;}
     .results > .meta-card{order:1;}
-    .results > .section-label{order:2;}
-    .results > .scorecard{order:3;}
-    .results > .legend{order:3;}
+    .results > .sections{order:3;}
+    .results > .clean-line{order:3;}
     .results > .inspector-only{order:5;}
     .results > .footnote{order:6;}
     .results > .disclaimer{order:7;}
     .meta-top{display:none;}
     .meta-assessment{border-top:none; margin-top:0; padding-top:0;}
-    .scorecard{box-shadow:none; border:1px solid var(--border); break-inside:auto;}
+    .sec{box-shadow:none; margin-bottom:6px; border-radius:8px;}
     .band-arrow{display:none;}
-    .score-tag{display:none;}
-    body.print-quick .score-tag{display:inline-block;}
-    .score-detail{display:flex !important;}
+    .sec .sec-list{display:block !important;}
+    .sec .sec-say{display:block !important;}
+    .chip{box-shadow:none !important; opacity:1 !important;}
     .meta-card, .coaching-card{box-shadow:none; border:1px solid var(--border);}
     .section-label{break-after:avoid; page-break-after:avoid; margin:12px 2px 6px;}
     a{color:var(--accent-ink); text-decoration:underline;}
@@ -274,28 +229,30 @@
     .meta-card{padding:12px 14px;}
     .meta-assessment{margin-top:8px; padding-top:8px;}
     .chips{margin-top:8px; gap:5px;}
-    .chip{padding:4px 9px;}
-    .chip .n{font-size:1.1rem;}
+    .chip{padding:4px 9px; font-size:0.8rem;}
     .coaching-card{padding:14px 16px;}
     .coaching-card .to{margin-bottom:8px;}
     .coaching-card p{line-height:1.45;}
     .coaching-recap{margin-top:12px; gap:5px;}
     .recap-item{padding:6px 9px;}
     .recap-item .n{font-size:1.15rem;}
-    .score-main{padding:8px 10px;}
-    .score-detail{padding:0 10px 8px 10px; gap:5px;}
-    .score-detail-item p{line-height:1.4;}
-    body.print-quick .score-detail, body.print-quick .inspector-only,
+    .sections{margin-top:10px;}
+    .sec-band{padding:6px 12px;}
+    .sec-name{font-size:1.05rem;}
+    .sec-list{padding:6px 12px 6px 32px; font-size:0.9rem; line-height:1.4;}
+    .sec-say{padding:6px 12px; font-size:0.92rem; border-top-width:2px;}
+    .sec-list a{text-decoration:none; color:var(--ink);}
+    body.print-quick .sec .sec-list, body.print-quick .sec .sec-say, body.print-quick .inspector-only,
     body.print-quick .footnote, body.print-quick .tip{display:none !important;}
-    body.print-quick .score-main{padding:5px 10px;}
-    body.print-quick .score-pages{display:inline;}
-    body.print-quick .score-row{break-inside:avoid;}
+    body.print-quick .sec-band{padding:5px 12px;}
+    body.print-quick .sec-meta{display:inline;}
+    body.print-quick .sec{break-inside:avoid;}
     .saved-note, .tip{display:none !important;}
     .footnote{margin-top:12px; padding-top:8px;}
     .disclaimer{margin-top:10px; padding-top:8px;}
     .disclaimer{gap:3px;}
     .disclaimer p{font-size:0.7rem; line-height:1.4;}
-    .legend{margin-top:6px; font-size:0.72rem;}
+    .clean-line{font-size:0.74rem;}
     .wrap{max-width:100%;padding:0;}
   }
 </style>
@@ -331,7 +288,7 @@
     <label for="url-input">Inspectagram report URL</label>
     <div class="run-row">
       <input type="text" id="url-input" placeholder="Paste your Share link here" autocomplete="off">
-      <button type="button" id="run-btn">Run Nani</button>
+      <button type="button" id="run-btn">Run it</button>
     </div>
     <div class="run-status" id="run-status"><div class="spinner"></div><span id="run-status-text">Nani is reading the report...</span></div>
     <div class="run-error" id="run-error"></div>
@@ -358,10 +315,8 @@
       </div>
       <div class="meta-assessment" id="meta-assessment"></div>
       <div class="chips" id="chips">
-        <div class="chip active" data-sev="all"><span class="n" id="count-all"></span><span class="l">All</span></div>
-        <div class="chip" data-sev="high"><span class="n" id="count-high"></span><span class="l">Liability</span></div>
-        <div class="chip" data-sev="medium"><span class="n" id="count-medium"></span><span class="l">Credibility</span></div>
-        <div class="chip" data-sev="low"><span class="n" id="count-low"></span><span class="l">Polish</span></div>
+        <button type="button" class="chip" data-sev="medium" aria-pressed="false"><span class="l">Attention</span><span class="n" id="count-medium"></span></button>
+        <button type="button" class="chip" data-sev="high" aria-pressed="false"><span class="l">Immediate attention</span><span class="n" id="count-high"></span></button>
       </div>
     </div>
 
@@ -375,11 +330,8 @@
     </div>
 
     <div class="tip">Tap a link and land in the report? Tap <b>?</b> in Inspectagram again — your results are saved, no re-run needed.</div>
-    <div class="section-label">Section by section</div>
-    <div class="scorecard" id="sections">
-      <div class="score-head"><div>Section</div><div>Review</div></div>
-    </div>
-    <div class="legend"><b>✓</b> = no quality issue flagged</div>
+    <div class="sections" id="sections"></div>
+    <div class="clean-line" id="clean-line"></div>
 
     <div class="footnote" id="footnote"></div>
     <div class="attention"><img src="/static/attention.jpg" width="1100" height="1392" loading="lazy" decoding="async" alt="Attention: the art of exceptional reports. BASEline: every icon needs a focused, clean photo. BlackBOX: your chapter photo should prove operation. Insurance: every question needs an answer, and always document limitations."></div>
@@ -487,60 +439,33 @@ const AREA_LABEL = {
   interior:'Interior', kitchen:'Kitchen', laundry:'Laundry', bathroom:'Bathroom',
   mechanical:'Mechanical', insurance:'Insurance', summary:'Summary', other:'Other'
 };
-// Every finding gets exactly one of these six tags from the model. The bucket
-// (which column it renders in) is decided here, not by the model, so it's
-// always consistent even if the model's wording drifts slightly.
-const TAG_BUCKET = {
-  'Missing info': 'review', 'Missing photos': 'review',
-  'Mismatch': 'review', 'Missing location': 'review',
-  'Unused pages': 'clean', 'Placeholder text': 'clean',
-};
-const SEV_RANK = {high:3, medium:2, low:1};
-const SEV_CLASS = {high:'sev-high', medium:'sev-medium', low:'sev-low'};
+// Two levels on the page: 'high' shows as Immediate attention (red), everything else as Attention (yellow).
+function level(f){ return f.severity === 'high' ? 'high' : 'medium'; }
 
-// A finding that covers many fields (the blank Insurance fields) shows them as a list, not a paragraph.
 function esc(s){
   return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;'}[c]));
 }
-function itemList(items){
-  if(!Array.isArray(items) || !items.length) return '';
-  return '<ul class="flist">' + items.map(i => `<li>${esc(i.name)}${i.note ? ' <i>' + esc(i.note) + '</i>' : ''}</li>`).join('') + '</ul>';
+
+// A finding as short "Item: what's wrong." lines. Results saved before this layout have no lines,
+// so they fall back to the finding's own sentence.
+function linesOf(f){
+  if(Array.isArray(f.lines) && f.lines.length){
+    return f.lines.map(l => ({text: l.item + ': ' + l.what, anchor: l.anchor || f.anchor, page: l.page || f.page, sev: level(f)}));
+  }
+  return [{text: (f.issue || '').trim(), anchor: f.anchor, page: f.page, sev: level(f)}];
 }
 
-// One plain sentence per finding, then the bold "Fix it." (after the list, when there is one).
-function findingText(f){
-  let t = (f.issue || '').trim();
-  if(t && !/[.!?]$/.test(t)) t += '.';
-  const fixit = '<span class="fixit">Fix it.</span>';
-  const list = itemList(f.items);
-  return list ? `<p class="issue">${esc(t)}</p>${list}<p class="issue">${fixit}</p>` : `<p class="issue">${esc(t)} ${fixit}</p>`;
+function lineHtml(l, sourceUrl){
+  const inner = `<span class="t">${esc(l.text)}</span>${l.page ? `<span class="pg">p. ${l.page}</span>` : ''}`;
+  const body = l.anchor
+    ? `<a href="${esc(sourceUrl + '#' + l.anchor)}" target="_blank" rel="noopener" title="Open this spot in the report">${inner}</a>`
+    : `<span class="row">${inner}</span>`;
+  return `<li data-sev="${l.sev}">${body}</li>`;
 }
 
-function worstSeverity(items){
-  return items.reduce((worst, f) => (SEV_RANK[f.severity] > SEV_RANK[worst] ? f.severity : worst), 'low');
-}
-
-function tagCellHtml(tags){
-  if(!tags.length) return '<span class="score-dash">—</span>';
-  return tags.map(t => `<span class="score-tag ${SEV_CLASS[t.severity]}">${t.tag}</span>`).join('');
-}
-
-// Where to find it in the report, written out so the inspector can go straight to it
-// in the Inspectagram app even if the link itself can't bring them back to Nani.
-function where(f){
-  const bits = [];
-  if(f.page) bits.push('Page ' + f.page);
-  if(f.section) bits.push(f.section);
-  return bits.length ? `<div class="where"><i>Find it:</i> ${bits.join(' · ')}</div>` : '';
-}
-function jumpLabel(f){
-  return f.page ? 'Open page ' + f.page + ' in the report ↗' : 'Open in the report ↗';
-}
-
-function pagesLabel(items){
-  const pages = [...new Set(items.map(f => f.page).filter(Boolean))].sort((a, b) => a - b);
-  if(!pages.length) return '';
-  return '<span class="score-pages">' + (pages.length === 1 ? 'p. ' : 'pp. ') + pages.join(', ') + '</span>';
+function pagesLabel(lines){
+  const pages = [...new Set(lines.map(l => l.page).filter(Boolean))].sort((a, b) => a - b);
+  return pages.length ? (pages.length === 1 ? 'p. ' : 'pp. ') + pages.join(', ') : '';
 }
 
 function render(data){
@@ -552,14 +477,6 @@ function render(data){
   document.getElementById('meta-source').href = data.source_url;
 
   const findings = data.findings || [];
-  const counts = {high:0, medium:0, low:0};
-  findings.forEach(f => counts[f.severity] = (counts[f.severity]||0) + 1);
-  document.getElementById('count-all').textContent = findings.length;
-  document.getElementById('count-high').textContent = counts.high;
-  document.getElementById('count-medium').textContent = counts.medium;
-  document.getElementById('count-low').textContent = counts.low;
-  document.getElementById('footnote').textContent = findings.length + ' findings from this report · Nani concept build';
-
   const byArea = {};
   findings.forEach(f => {
     const a = f.area || 'other';
@@ -567,105 +484,68 @@ function render(data){
   });
   // Union, not just sections_reviewed: if the model tags a finding with an
   // area but forgets to also list that area in sections_reviewed, the
-  // finding must still get a row rather than silently disappearing.
+  // finding must still get a section rather than silently disappearing.
   const areasPresent = Array.from(new Set([...(data.sections_reviewed || []), ...Object.keys(byArea)]));
-
-  // Clean sections first (nothing to do), then issues worst-severity-first —
-  // what needs attention should surface before what's already fine to skim past.
   const sectionsData = areasPresent.map(area => {
     const items = byArea[area] || [];
-    return {area, items, worst: items.length ? worstSeverity(items) : null};
-  }).sort((a, b) => {
-    if(!a.worst && !b.worst) return 0;
-    if(!a.worst) return 1;
-    if(!b.worst) return -1;
-    return SEV_RANK[b.worst] - SEV_RANK[a.worst];
+    const lines = items.flatMap(linesOf).sort((a, b) => (b.sev === 'high') - (a.sev === 'high'));  // red lines first
+    return {area, items, lines, worst: lines.length ? (lines.some(l => l.sev === 'high') ? 'high' : 'medium') : null};
   });
+  const flagged = sectionsData.filter(s => s.worst).sort((a, b) => (b.worst === 'high') - (a.worst === 'high'));
+  const clean = sectionsData.filter(s => !s.worst);
 
-  sectionsEl.querySelectorAll('.score-row').forEach(r => r.remove());
-  sectionsData.forEach(({area, items, worst}) => {
-    const label = AREA_LABEL[area] || area;
-    const row = document.createElement('div');
-    row.className = 'score-row';
+  const allLines = flagged.flatMap(s => s.lines);
+  document.getElementById('count-high').textContent = allLines.filter(l => l.sev === 'high').length;
+  document.getElementById('count-medium').textContent = allLines.filter(l => l.sev !== 'high').length;
+  document.getElementById('footnote').textContent = allLines.length + ' items from this report · Nani concept build';
 
-    if(items.length === 0){
-      row.innerHTML = `
-        <div class="score-main">
-          <div class="score-name-wrap">
-            <span class="score-name">${label}</span>
-          </div>
-          <div class="score-col"><span class="score-clean-badge" title="No quality issue flagged" aria-label="No quality issue flagged">✓</span></div>
-        </div>
-      `;
-      sectionsEl.appendChild(row);
-      return;
-    }
-
-    row.classList.add('clickable', 'band-' + worst);
-    row.dataset.worst = worst;
-    // dedupe tags within this section, tracking the worst severity behind each
-    const byTag = {};
-    items.forEach(f => {
-      const t = TAG_BUCKET[f.tag] ? f.tag : 'Missing info';
-      (byTag[t] = byTag[t] || []).push(f);
-    });
-    const allTags = [];
-    Object.entries(byTag).forEach(([tag, fs]) => {
-      const entry = {tag, severity: worstSeverity(fs)};
-      allTags.push(entry);
-    });
-
-    row.innerHTML = `
-      <div class="score-main">
-        <div class="score-name-wrap">
-          <span class="score-name">${label}</span>
-          ${pagesLabel(items)}
-        </div>
-        <div class="score-col">${tagCellHtml(allTags)}<span class="band-arrow" aria-hidden="true"></span></div>
+  const comments = data.section_comments || {};
+  sectionsEl.innerHTML = '';
+  flagged.forEach(({area, lines, worst}) => {
+    const sec = document.createElement('div');
+    sec.className = 'sec open band-' + worst;
+    sec.dataset.worst = worst;
+    const pages = pagesLabel(lines);
+    sec.innerHTML = `
+      <div class="sec-band" role="button" tabindex="0" aria-expanded="true">
+        <span class="sec-name">${esc(AREA_LABEL[area] || area)}</span>
+        <span class="sec-meta">${lines.length}${pages ? ' · ' + pages : ''}</span>
+        <span class="band-arrow" aria-hidden="true"></span>
       </div>
-      <div class="score-detail">
-        ${items.map((f, n) => {
-          const link = f.anchor ? `${data.source_url}#${f.anchor}` : null;
-          return `
-            <div class="score-detail-item${n ? '' : ' lead'}" data-sev="${f.severity}">
-              ${findingText(f)}
-              ${where(f)}${link ? `<a class="jump" href="${link}" target="_blank" rel="noopener">${jumpLabel(f)}</a>` : ''}
-            </div>
-          `;
-        }).join('')}
-      </div>
+      <ol class="sec-list">${lines.map(l => lineHtml(l, data.source_url)).join('')}</ol>
+      ${comments[area] ? `<div class="sec-say">${esc(comments[area])}</div>` : ''}
     `;
-    row.querySelector('.score-main').addEventListener('click', () => row.classList.toggle('open'));
-    sectionsEl.appendChild(row);
+    const band = sec.querySelector('.sec-band');
+    const toggle = () => band.setAttribute('aria-expanded', sec.classList.toggle('open'));
+    band.addEventListener('click', toggle);
+    band.addEventListener('keydown', e => { if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); toggle(); } });
+    sectionsEl.appendChild(sec);
   });
+  document.getElementById('clean-line').innerHTML = clean.length
+    ? '<b>✓</b> Nothing flagged: ' + clean.map(s => esc(AREA_LABEL[s.area] || s.area)).join(', ') : '';
 
-  document.querySelectorAll('.chip').forEach(chip => {
-    chip.onclick = () => {
-      document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
-      chip.classList.add('active');
-      // Each button shows only its own color: a section appears with just the findings of that
-      // level, and its band takes that level's color.
-      const sev = chip.dataset.sev;
-      sectionsEl.querySelectorAll('.score-row').forEach(row => {
-        if(!row.classList.contains('clickable')){
-          row.style.display = (sev === 'all') ? '' : 'none';
-          return;
-        }
-        let shown = 0;
-        row.querySelectorAll('.score-detail-item').forEach(item => {
-          const on = sev === 'all' || item.dataset.sev === sev;
-          item.style.display = on ? '' : 'none';
-          item.classList.toggle('lead', on && shown === 0);
-          if(on) shown++;
-        });
-        row.style.display = shown ? '' : 'none';
-        row.classList.remove('band-high', 'band-medium', 'band-low');
-        row.classList.add('band-' + (sev === 'all' ? row.dataset.worst : sev));
+  // Each button shows only its own color; pressing it again shows everything.
+  const chips = [...document.querySelectorAll('.chip')];
+  const applyFilter = sev => {
+    chips.forEach(c => {
+      c.classList.toggle('active', c.dataset.sev === sev);
+      c.classList.toggle('dim', !!sev && c.dataset.sev !== sev);
+      c.setAttribute('aria-pressed', c.dataset.sev === sev);
+    });
+    sectionsEl.querySelectorAll('.sec').forEach(sec => {
+      let shown = 0;
+      sec.querySelectorAll('.sec-list li').forEach(li => {
+        const on = !sev || li.dataset.sev === sev;
+        li.style.display = on ? '' : 'none';
+        if(on) shown++;
       });
-    };
-  });
-  // a fresh set of results always starts on "All"
-  document.querySelectorAll('.chip').forEach(c => c.classList.toggle('active', c.dataset.sev === 'all'));
+      sec.style.display = shown ? '' : 'none';
+      sec.classList.remove('band-high', 'band-medium');
+      sec.classList.add('band-' + (sev || sec.dataset.worst));
+    });
+  };
+  chips.forEach(chip => { chip.onclick = () => applyFilter(chip.classList.contains('active') ? null : chip.dataset.sev); });
+  applyFilter(null);  // a fresh set of results always starts unfiltered
 
   document.getElementById('coach-text').textContent = data.coaching_summary || '';
   const recap = document.getElementById('coach-recap');

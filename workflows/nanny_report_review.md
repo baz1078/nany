@@ -73,6 +73,13 @@ reports.
   company/account on Inspectagram; verify if a report from another company 403s.
 
 ## Self-Improvement Log
+- 2026-11-13 (later): Owner's new layout, from a picture of Lucas's: each finding is a numbered short
+  line, "Item: what's wrong." (about five words), red and yellow bands only (high = Immediate attention,
+  everything else = Attention), a green Run button, the page number at the right of each tappable line,
+  and one comment per section under the list. The voice step now returns `lines` per finding; code-made
+  findings build their own. Section comments come from `SECTION_COMMENTS` in code, never from the model
+  (starter lines, the owner and Lucas supply the real list). The small model now and then returns a
+  broken or partial reply, so the voice step asks twice and falls back per finding, not all-or-nothing.
 - 2026-11-13: Owner wants each finding as ONE plain sentence plus "Fix it." No why/fix lines, no tag pills,
   no "####", dashes, symbols or page numbers in the sentence. The voice step now writes only `issue`.
   A small model ignores "never mention the placeholder" about one time in three, so that part is done in
