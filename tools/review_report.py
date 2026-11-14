@@ -183,40 +183,30 @@ Examples:
 Return ONLY valid JSON, no markdown fencing, one entry per input finding with the same "i":
 {"overall": "...", "findings": [{"i": 0, "lines": [{"item": "...", "what": "..."}]}]}"""
 
-# One comment per flagged section, shown under its list. Starter lines: the owner and Lucas edit this list.
-# Picked in code (never written by the model) so the tone is always one that was approved.
-SECTION_COMMENTS = {
+# One comment for the whole report, shown once under the link box. Starter lines: the owner and Lucas edit
+# this list. Picked in code (never written by the model) so the tone is always one that was approved.
+REPORT_COMMENTS = {
     "high": [
         "Not terrible... but not exactly a standing ovation for attention to detail.",
         "Good effort, but the attention to detail seems to have left the building.",
-        "This section carries the most weight. Tighten it up.",
-        "Close doesn't count on this page. Finish it.",
+        "Close doesn't count on a report that carries your name. Finish it.",
         "A sharp client spots these in a minute. Beat them to it.",
     ],
     "medium": [
         "Small stuff. Still your name on the report.",
-        "Almost there. Clean these up and move on.",
+        "Almost there. Clean these up and send it.",
         "Nothing scary here, just unfinished.",
         "Quick fixes. Knock them out.",
-        "Details like these are what make a report look sharp.",
     ],
 }
 
 
-def section_comments(findings, seed=""):
-    """area -> one comment. The same report always gets the same lines, and no line repeats until the list runs out."""
-    worst = {}
-    for f in findings or []:
-        area = f.get("area") or "other"
-        if f.get("severity") == "high" or area not in worst:
-            worst[area] = "high" if f.get("severity") == "high" or worst.get(area) == "high" else "medium"
-    start = int(hashlib.md5((seed or "").encode("utf-8")).hexdigest(), 16)
-    out, used = {}, {"high": 0, "medium": 0}
-    for area, level in worst.items():
-        pool = SECTION_COMMENTS[level]
-        out[area] = pool[(start + used[level]) % len(pool)]
-        used[level] += 1
-    return out
+def report_comment(findings, seed=""):
+    """One comment for the whole report. The same report always gets the same line."""
+    if not findings:
+        return ""
+    pool = REPORT_COMMENTS["high" if any(f.get("severity") == "high" for f in findings) else "medium"]
+    return pool[int(hashlib.md5((seed or "").encode("utf-8")).hexdigest(), 16) % len(pool)]
 
 
 def _insurance_list(findings, blanks):
@@ -708,15 +698,31 @@ def _about_blackbox(item, inside, outside):
     return False
 
 
+_SUMMARY_GAP_RE = re.compile(
+    r"\b(?:missing from|not (?:in|listed in|included in|reflected in|mentioned in)|absent from|omitted from|left out"
+    r"|no (?:entry|mention|corresponding|matching)|there is no|(?:does|do|did) not (?:appear|include|list|mention|contain)"
+    r"|never (?:appear|made|listed))\b", re.IGNORECASE)
+
+
+def _minor_summary_gap(item):
+    """A yellow 'this is in the report but missing from the Summary' finding. The owner (and Lucas, 2026-11-13):
+    a missing Summary entry is probably on purpose, so only the red ones (safety items) are worth raising.
+    Entries the code itself found blank, and every other kind of finding, are not touched."""
+    issue = item.get("issue") or ""
+    return (item.get("source") != "code" and item.get("area") == "summary" and item.get("tag") == "Missing info"
+            and item.get("severity") != "high" and "summary" in issue.lower() and bool(_SUMMARY_GAP_RE.search(issue)))
+
+
 def _drop_out_of_scope(items, text=""):
     """Rules enforced on the review's output, so the review prompt itself never has to change:
     - a BlackBOX item does not need its own Summary entry (the General Notes pointer covers it);
     - a photo with no text is fine;
-    - an entry with no location is only a problem in Interior and Exterior, and code checks those."""
+    - an entry with no location is only a problem in Interior and Exterior, and code checks those;
+    - an ordinary (not red) item missing from the Summary is probably on purpose."""
     inside, outside = blackbox_texts(text) if text else ("", "")
     return [it for it in items
             if not _PHOTO_ONLY_RE.search(it.get("issue", "")) and not _NO_LOCATION_RE.search(it.get("issue", ""))
-            and not _about_blackbox(it, inside, outside)]
+            and not _about_blackbox(it, inside, outside) and not _minor_summary_gap(it)]
 
 
 def review_report(url):
@@ -775,7 +781,7 @@ def review_report(url):
         for line in item.get("lines") or []:
             if line.get("anchor"):
                 line["page"] = pages.get(line["anchor"])
-    result["section_comments"] = section_comments(result.get("findings"), result["report_hash"])
+    result["report_comment"] = report_comment(result.get("findings"), result["report_hash"])
     return result
 
 

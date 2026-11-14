@@ -6,7 +6,7 @@
 <title>Nani</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@500;600;700;800&family=Montserrat:wght@700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@500;600;700;800&family=Roboto+Condensed:wght@400&family=Montserrat:wght@700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
     --bg:#F5F7F8; --surface:#FFFFFF; --surface-2:#EDF1F3;
@@ -116,7 +116,7 @@
   .sec.band-high{--band:var(--red);--band-ink:#fff;}
   .sec.band-medium{--band:var(--yellow);--band-ink:var(--ink);}
   .sec-band{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--band);color:var(--band-ink);cursor:pointer;}
-  .sec-name{font-family:var(--font-display);font-weight:700;font-size:1.5rem;line-height:1.1;}
+  .sec-name{font-family:'Roboto Condensed',var(--font-display);font-weight:400;font-size:1.5rem;line-height:1.1;}
   .band-arrow{margin-left:auto;flex:none;width:36px;height:36px;border-radius:50%;background:#fff;border:1.5px solid #102334;display:inline-flex;align-items:center;justify-content:center;transition:transform .15s ease;}
   .band-arrow::before{content:"";width:9px;height:9px;border-right:3px solid #102334;border-bottom:3px solid #102334;transform:translateY(-2px) rotate(45deg);}
   .sec:not(.open) .band-arrow{transform:rotate(-90deg);}
@@ -126,8 +126,16 @@
   .sec-list a, .sec-list .row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;color:inherit;text-decoration:none;}
   .sec-list a:hover .t{text-decoration:underline;}
   .sec-list .pg{flex:none;font-size:0.78rem;color:var(--ink-faint);white-space:nowrap;}
-  .sec-say{border-top:6px solid var(--bg);padding:14px 16px;font-size:1.12rem;line-height:1.3;color:var(--ink);}
-  .sec:not(.open) .sec-list, .sec:not(.open) .sec-say{display:none;}
+  @media (max-width:640px){
+    /* on a phone the page number becomes a small arrow: same on every line, and it says the line can be tapped */
+    .sec-list .row .pg{display:none;}
+    .sec-list a{align-items:center;}
+    .sec-list a .pg{font-size:0;line-height:1;}
+    .sec-list a .pg::after{content:"›";font-size:1.6rem;color:var(--ink-muted);}
+  }
+  .top-say{background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:16px 18px;margin-bottom:14px;font-size:1.12rem;line-height:1.3;color:var(--ink);}
+  .top-say:empty{display:none;}
+  .sec:not(.open) .sec-list{display:none;}
   .clean-line{margin:2px 2px 0;font-size:0.84rem;color:var(--ink-muted);}
   .clean-line b{color:var(--good);}
   .clean-line:empty{display:none;}
@@ -154,7 +162,7 @@
   @media screen{
     .attention{padding-bottom:20px;}
     .attention + .disclaimer{margin:-2px 0 -80px;padding:2px 0 44px;border-top:none;background:#f87700;box-shadow:0 0 0 100vmax #f87700;clip-path:inset(0 -100vmax);}
-    .attention + .disclaimer p{width:100%;max-width:760px;margin:0 auto;color:#102334;}
+    .attention + .disclaimer p{width:100%;max-width:760px;margin:0 auto;color:#102334;font-weight:600;}
   }
   .disclaimer p{margin:0;font-size:0.76rem;color:var(--ink-faint);line-height:1.5;}
 
@@ -206,7 +214,8 @@
     /* Only the small blocks stay unbroken - a big unbreakable block that
        doesn't fit remaining page space gets pushed whole onto a fresh page,
        leaving the rest of the prior page blank. */
-    .chips, .recap-item, .sec-band, .sec-list li, .sec-say{ break-inside:avoid; page-break-inside:avoid; }
+    .chips, .recap-item, .sec-band, .sec-list li{ break-inside:avoid; page-break-inside:avoid; }
+    .top-say{display:none !important;}
     .sec-band{ break-after:avoid; page-break-after:avoid; }
     .results.visible{display:flex !important;flex-direction:column;}
     .results > .meta-card{order:1;}
@@ -220,7 +229,6 @@
     .sec{box-shadow:none; margin-bottom:6px; border-radius:8px;}
     .band-arrow{display:none;}
     .sec .sec-list{display:block !important;}
-    .sec .sec-say{display:block !important;}
     .chip{box-shadow:none !important; opacity:1 !important;}
     .meta-card, .coaching-card{box-shadow:none; border:1px solid var(--border);}
     .section-label{break-after:avoid; page-break-after:avoid; margin:12px 2px 6px;}
@@ -240,9 +248,8 @@
     .sec-band{padding:6px 12px;}
     .sec-name{font-size:1.05rem;}
     .sec-list{padding:6px 12px 6px 32px; font-size:0.9rem; line-height:1.4;}
-    .sec-say{padding:6px 12px; font-size:0.92rem; border-top-width:2px;}
     .sec-list a{text-decoration:none; color:var(--ink);}
-    body.print-quick .sec .sec-list, body.print-quick .sec .sec-say, body.print-quick .inspector-only,
+    body.print-quick .sec .sec-list, body.print-quick .inspector-only,
     body.print-quick .footnote, body.print-quick .tip{display:none !important;}
     body.print-quick .sec-band{padding:5px 12px;}
     body.print-quick .sec-meta{display:inline;}
@@ -320,6 +327,8 @@
       </div>
     </div>
 
+    <div class="top-say" id="top-say"></div>
+
     <div class="inspector-only">
       <div class="section-label">The Talk</div>
       <div class="coaching-card">
@@ -333,7 +342,6 @@
     <div class="sections" id="sections"></div>
     <div class="clean-line" id="clean-line"></div>
 
-    <div class="footnote" id="footnote"></div>
     <div class="attention"><img src="/static/attention.jpg" width="1100" height="1392" loading="lazy" decoding="async" alt="Attention: the art of exceptional reports. BASEline: every icon needs a focused, clean photo. BlackBOX: your chapter photo should prove operation. Insurance: every question needs an answer, and always document limitations."></div>
     <div class="disclaimer">
       <p>Nani is a quick check to help you catch things. It isn't 100% accurate, so always review your report yourself.</p>
@@ -497,9 +505,8 @@ function render(data){
   const allLines = flagged.flatMap(s => s.lines);
   document.getElementById('count-high').textContent = allLines.filter(l => l.sev === 'high').length;
   document.getElementById('count-medium').textContent = allLines.filter(l => l.sev !== 'high').length;
-  document.getElementById('footnote').textContent = allLines.length + ' items from this report · Nani concept build';
 
-  const comments = data.section_comments || {};
+  document.getElementById('top-say').textContent = data.report_comment || '';
   sectionsEl.innerHTML = '';
   flagged.forEach(({area, lines, worst}) => {
     const sec = document.createElement('div');
@@ -513,7 +520,6 @@ function render(data){
         <span class="band-arrow" aria-hidden="true"></span>
       </div>
       <ol class="sec-list">${lines.map(l => lineHtml(l, data.source_url)).join('')}</ol>
-      ${comments[area] ? `<div class="sec-say">${esc(comments[area])}</div>` : ''}
     `;
     const band = sec.querySelector('.sec-band');
     const toggle = () => band.setAttribute('aria-expanded', sec.classList.toggle('open'));

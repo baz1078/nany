@@ -73,6 +73,12 @@ reports.
   company/account on Inspectagram; verify if a report from another company 403s.
 
 ## Self-Improvement Log
+- 2026-11-13 (night): Lucas: "if something is missing from the Summary it's probably supposed to be."
+  Code rule `_minor_summary_gap` drops model-made yellow "in the report but missing from the Summary"
+  findings; red ones (safety items) and code-found blank entries stay. None of the 5 saved reports had a
+  yellow one, so the effect is only seen on live runs. Also: one comment for the whole report under the
+  buttons (`report_comment`, picked in code), heading font Roboto Condensed, phone shows a "›" in place of
+  the page number, fine print bold. Check a live run for a yellow gap that should have stayed.
 - 2026-11-13 (later): Owner's new layout, from a picture of Lucas's: each finding is a numbered short
   line, "Item: what's wrong." (about five words), red and yellow bands only (high = Immediate attention,
   everything else = Attention), a green Run button, the page number at the right of each tappable line,
