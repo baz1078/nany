@@ -158,8 +158,10 @@ words, 1 to 4 words, no quotes, no brackets, no "(s)". "Heating Unit", "Bathroom
 "Inspection date".
 - "what": what is wrong with it, 2 to 6 words, ending with a period. Start with "Missing" whenever something is \
 missing: "Missing age.", "Missing photo.", "Missing answer.", "Missing the action.", "Missing from Summary."
-- When two things disagree, say that they disagree, or say both sides in two tiny sentences: "Icon and note \
-disagree.", "Two different dates.", "Says present. Bathroom says missing."
+- A Summary entry whose icon and note do not match: write "Icon says X, note says Y." using the exact level \
+words from the finding, which are Observation, Attention and Immediate attention: "Icon says Attention, note says \
+Observation."
+- When two other things disagree, say both sides in two tiny sentences: "Says present. Bathroom says missing."
 - A finding tagged "Not filled in" means the real thing was never put in. Say what is missing ("Missing age.", \
 "Missing SOP name.") and nothing about what is sitting there in its place.
 - One line per finding. Use more than one line only when the finding names several separate entries or fields; \
@@ -176,7 +178,7 @@ Examples:
 {"item": "Hot Water Unit", "what": "Missing manufacture date."}
 {"item": "Toilet", "what": "Missing the summary note."}
 {"item": "Bathroom GFCI", "what": "Says present. Bathroom says missing."}
-{"item": "Furnace", "what": "Icon and note disagree."}
+{"item": "Furnace", "what": "Icon says Attention, note says Observation."}
 {"item": "Extraction Fan", "what": "Missing from Summary."}
 {"item": "Inspection date", "what": "Two different dates."}
 
@@ -627,6 +629,87 @@ def find_missing_locations(text):
     return out
 
 
+_PAGE_CHECKS = [("The Elements", r"element"), ("The Method", r"method"), ("Disclaimer", r"disclaimer"),
+                ("Icons and Legends", r"legend"), ("72 Seconds", r"72\s*seconds"), ("Contract", r"agreement|contract")]
+_WEATHER_RE = re.compile(r"\b(?:sunny|cloud\w*|overcast|rain\w*|shower\w*|snow\w*|sleet|fog\w*|mist\w*|wind\w*|storm\w*"
+                         r"|thunder\w*|clear|hail|drizzle|haze)\b", re.IGNORECASE)
+_TEMP_RE = re.compile(r"[-+]?\d{1,3}\s*(?:[°º]\s*[CcFf]?|[CcFf]\b)")
+
+
+def _menu_labels(text):
+    """The page names in the report's menu, which comes before the first page: '[The Cover] The Cover ...'."""
+    nav = text[:text.find("[ANCHOR:page-1]")] if "[ANCHOR:page-1]" in text else text[:6000]
+    out = []
+    for m in re.finditer(r"\[([^\]\n]{2,40})\]\s+\1\b", nav):
+        if m.group(1) not in out:
+            out.append(m.group(1))
+    return out
+
+
+def _elements_without_temperature(text):
+    """The Elements page lists date, address, building type and weather ('Partly Sunny +4C') as four icon
+    groups. If the weather is there but has no temperature, returns that page's anchor; otherwise None."""
+    lines = _clean_lines(text)
+    for i, l in enumerate(lines):
+        if not _PAGE_ANCHOR_RE.fullmatch(l) or [x.lower() for x in lines[i + 1:i + 3]] != ["the", "elements"]:
+            continue
+        j = i + 3
+        while j < len(lines) and not _PAGE_ANCHOR_RE.fullmatch(lines[j]):
+            j += 1
+        groups, cur = [], None
+        for x in lines[i + 3:j]:
+            if x == "[Element Icon]":
+                cur = []
+                groups.append(cur)
+            elif cur is not None:
+                cur.append(x)
+        weather = groups[3][0] if len(groups) >= 4 and groups[3] else ""
+        if _WEATHER_RE.search(weather) and not _TEMP_RE.search(weather):
+            return _PAGE_ANCHOR_RE.fullmatch(l).group(1)
+        return None
+    return None
+
+
+def _sample_contract_anchor(text):
+    """The page a leftover 'sample contract' sits on, or None."""
+    m = re.search(r"sample contract", text, re.IGNORECASE)
+    if not m:
+        return None
+    pages = [x.group(1) for x in _PAGE_ANCHOR_RE.finditer(text, 0, m.start())]
+    return pages[-1] if pages else "page-1"
+
+
+def _sample_contract_dupe(item):
+    """The model's own 'sample contract is still there' finding, once code reports it."""
+    issue = (item.get("issue") or "").lower()
+    return item.get("source") != "code" and "sample contract" in issue
+
+
+def find_missing_pages(text):
+    """What every report should carry (owner, 2026-11-18): the standard pages, a contract that is not the
+    sample one, and a temperature on the Elements page. Pages are read from the report's menu; if it does not
+    look like the usual one the page check stays silent rather than guess. Kept apart from
+    find_code_findings so the review's own input is not changed."""
+    lines = []
+    labels = _menu_labels(text)
+    if "The Cover" in labels and len(labels) >= 6:
+        lines += [_line(name, "Missing page") for name, pat in _PAGE_CHECKS
+                  if not any(re.search(pat, l, re.IGNORECASE) for l in labels)]
+    temp_page = _elements_without_temperature(text)
+    if temp_page:
+        lines.append(_line("Temperature", "Missing from the Elements page", temp_page))
+    sample = _sample_contract_anchor(text)
+    if sample:
+        lines.append(_line("Contract", "Sample contract still in the report", sample))
+    lines = [l for l in lines if l]
+    if not lines:
+        return []
+    return [_code_finding("report", "Missing info", "medium", "Missing items",
+                          "Missing from the report: " + ", ".join(l["item"] for l in lines) + ".",
+                          None,  # each line carries its own page, if it has one
+                          "Every report carries these.", "Add the missing items.", lines=lines)]
+
+
 def find_code_findings(text):
     """Findings that are pure pattern matches: built in code with fixed wording so they come out
     identical on every run and cost no model output tokens."""
@@ -701,28 +784,49 @@ def _about_blackbox(item, inside, outside):
 _SUMMARY_GAP_RE = re.compile(
     r"\b(?:missing from|not (?:in|listed in|included in|reflected in|mentioned in)|absent from|omitted from|left out"
     r"|no (?:entry|mention|corresponding|matching)|there is no|(?:does|do|did) not (?:appear|include|list|mention|contain)"
-    r"|never (?:appear|made|listed))\b", re.IGNORECASE)
+    r"|never (?:appear|made|listed)|(?:nor|not|never|neither)\b[^.]{0,60}\bappear)\b", re.IGNORECASE)
 
 
-def _minor_summary_gap(item):
-    """A yellow 'this is in the report but missing from the Summary' finding. The owner (and Lucas, 2026-11-13):
-    a missing Summary entry is probably on purpose, so only the red ones (safety items) are worth raising.
+def _summary_gap(item):
+    """'This is in the report but missing from the Summary'. Leaving an item out of the Summary takes a
+    deliberate click by the inspector (owner, 2026-11-18), so it is never worth raising, red or yellow.
     Entries the code itself found blank, and every other kind of finding, are not touched."""
     issue = item.get("issue") or ""
     return (item.get("source") != "code" and item.get("area") == "summary" and item.get("tag") == "Missing info"
-            and item.get("severity") != "high" and "summary" in issue.lower() and bool(_SUMMARY_GAP_RE.search(issue)))
+            and "summary" in issue.lower() and bool(_SUMMARY_GAP_RE.search(issue)))
 
 
-def _drop_out_of_scope(items, text=""):
+_BLANK_WORDS_RE = re.compile(r"\b(?:blank|empty|no value|no answer|unanswered|bare)\b", re.IGNORECASE)
+
+
+def _insurance_not_blank(item, blank_labels):
+    """The Insurance page is only checked for blank fields and leftover '####'; its answers are not compared
+    with the rest of the report (owner, 2026-11-18)."""
+    if item.get("area") != "insurance" or item.get("tag") == "Placeholder text":
+        return False
+    issue = (item.get("issue") or "").lower()
+    return not (any(lbl and lbl in issue for lbl in blank_labels) or _BLANK_WORDS_RE.search(issue))
+
+
+def _two_cover_dates(item):
+    """Two inspection dates on the cover are fine (owner, 2026-11-18)."""
+    return (item.get("area") == "cover" and item.get("tag") in ("Mismatch", "Missing info")
+            and bool(re.search(r"\bdates?\b", item.get("issue") or "", re.IGNORECASE)))
+
+
+def _drop_out_of_scope(items, text="", insurance_blanks=None):
     """Rules enforced on the review's output, so the review prompt itself never has to change:
     - a BlackBOX item does not need its own Summary entry (the General Notes pointer covers it);
     - a photo with no text is fine;
     - an entry with no location is only a problem in Interior and Exterior, and code checks those;
-    - an ordinary (not red) item missing from the Summary is probably on purpose."""
+    - an item missing from the Summary was left out on purpose;
+    - the Insurance page is only checked for blank fields; two dates on the cover are fine."""
+    labels = [b.split(" (")[0].lower() for b in insurance_blanks or []]
     inside, outside = blackbox_texts(text) if text else ("", "")
     return [it for it in items
             if not _PHOTO_ONLY_RE.search(it.get("issue", "")) and not _NO_LOCATION_RE.search(it.get("issue", ""))
-            and not _about_blackbox(it, inside, outside) and not _minor_summary_gap(it)]
+            and not _about_blackbox(it, inside, outside) and not _summary_gap(it)
+            and not _insurance_not_blank(it, labels) and not _two_cover_dates(it)]
 
 
 def review_report(url):
@@ -769,8 +873,12 @@ def review_report(url):
     # Exterior entries no longer need a location (owner, 2026-11-13). The finding is still built above so
     # the review's input stays exactly as it was; it is only left out of the result.
     shown_code = [c for c in code_items if not (c["tag"] == "Missing location" and c["area"] == "exterior")]
-    result["findings"] = _drop_out_of_scope(_drop_code_duplicates(result.get("findings", []), code_items), text) + shown_code
-    result["also_noticed"] = _drop_out_of_scope(_drop_code_duplicates(result["also_noticed"], code_items), text)
+    extra = find_missing_pages(text)
+    kept = _drop_out_of_scope(_drop_code_duplicates(result.get("findings", []), code_items), text, blanks)
+    if any("Sample contract" in l["what"] for f in extra for l in f["lines"]):
+        kept = [f for f in kept if not _sample_contract_dupe(f)]  # code reports it already
+    result["findings"] = kept + shown_code + extra
+    result["also_noticed"] = _drop_out_of_scope(_drop_code_duplicates(result["also_noticed"], code_items), text, blanks)
     apply_voice(result, client, insurance_blanks=blanks)
     result["report_hash"] = hashlib.md5(text.encode("utf-8")).hexdigest()[:12]
     result["anchor_hashes"] = anchor_hashes(text)

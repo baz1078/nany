@@ -73,6 +73,16 @@ reports.
   company/account on Inspectagram; verify if a report from another company 403s.
 
 ## Self-Improvement Log
+- 2026-11-18: Owner's round after Lucas's feedback. Rules in code on the review's output: an item missing
+  from the Summary is never flagged (leaving one out takes a deliberate click), Insurance is only checked
+  for blank fields and "####", two dates on the cover are fine. New code-made "Missing items" finding
+  (`find_missing_pages`, kept out of the review's input): standard pages missing from the report's menu
+  (Elements, Method, Disclaimer, Icons & Legends, 72 Seconds, Agreement/Contract), a weather line with no
+  temperature on the Elements page, a leftover "sample contract". Icon/note mismatches read "Icon says
+  Attention, note says Observation." Page: report links off (they sent people out of Nani and back into a
+  full re-run), page numbers show on phone too, "Beta" tag, round Instagram photo in the card corner,
+  Take snapshot button (canvas picture of all items, share sheet on phones), Run it matches the level
+  buttons. Watch on live runs: "Contract: Missing page" shows on most reports that have no Agreement page.
 - 2026-11-13 (night): Lucas: "if something is missing from the Summary it's probably supposed to be."
   Code rule `_minor_summary_gap` drops model-made yellow "in the report but missing from the Summary"
   findings; red ones (safety items) and code-found blank entries stay. None of the 5 saved reports had a

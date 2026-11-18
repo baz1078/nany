@@ -66,16 +66,16 @@
   .run-card label{font-family:var(--font-mono);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--ink-faint);display:block;margin-bottom:8px;}
   .run-row{display:flex;gap:10px;flex-wrap:wrap;}
   .run-row input[type=text]{
-    flex:1;min-width:240px;
+    flex:1;min-width:180px;height:44px;
     font-family:var(--font-mono);font-size:0.92rem;
-    background:var(--surface-2);border:1px solid var(--border);border-radius:8px;
-    color:var(--ink);padding:12px 14px;
+    background:var(--surface-2);border:1px solid var(--border);border-radius:9px;
+    color:var(--ink);padding:0 14px;
   }
   .run-row input[type=text]:focus{outline:2px solid var(--accent);outline-offset:0;border-color:var(--accent);}
   .run-row button{
-    font-family:var(--font-body);font-weight:700;font-size:0.92rem;
-    background:var(--green);color:var(--ink);border:1px solid rgba(22,35,61,.45);border-radius:8px;
-    padding:12px 22px;cursor:pointer;white-space:nowrap;
+    font-family:var(--font-body);font-weight:600;font-size:0.95rem;
+    background:var(--green);color:var(--ink);border:1px solid rgba(22,35,61,.45);border-radius:9px;
+    height:44px;padding:0 20px;min-width:130px;cursor:pointer;white-space:nowrap;
   }
   .run-row button:disabled{opacity:0.6;cursor:default;}
   .run-status{margin-top:12px;font-size:0.85rem;color:var(--ink-muted);display:none;align-items:center;gap:8px;}
@@ -93,13 +93,18 @@
   .meta-address{font-family:var(--font-mono);font-weight:500;font-size:1.05rem;color:var(--ink);}
   .meta-sub{font-size:0.82rem;color:var(--ink-muted);margin-top:4px;display:flex;gap:14px;flex-wrap:wrap;}
   .meta-sub b{color:var(--ink);font-weight:600;}
-  .meta-source{font-family:var(--font-mono);font-size:0.74rem;color:var(--ink-faint);text-decoration:none;border:1px solid var(--border);border-radius:6px;padding:6px 10px;white-space:nowrap;}
-  .meta-source:hover{border-color:var(--accent);color:var(--accent-ink);}
+  /* Inspectagram's Instagram page: the round photo in the corner of the card, with a small Instagram mark */
+  .ig-chip{position:relative;display:block;width:64px;height:64px;flex:none;border-radius:50%;text-decoration:none;}
+  .ig-chip img{width:64px;height:64px;border-radius:50%;display:block;box-shadow:0 0 0 2px #fff, 0 1px 5px rgba(22,35,61,.3);}
+  .ig-badge{position:absolute;right:-5px;bottom:-5px;width:27px;height:27px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(22,35,61,.35);}
+  .ig-badge svg{width:17px;height:17px;display:block;}
+  .ig-chip:hover img{box-shadow:0 0 0 2px #fff, 0 0 0 4px var(--ink);}
+  .ig-chip:focus-visible{outline:3px solid var(--ink);outline-offset:4px;}
   .meta-assessment{margin-top:14px;padding-top:14px;border-top:1px dashed var(--border);font-size:0.92rem;color:var(--ink-muted);}
 
   .chips{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;}
   /* two levels, in the report's own words: yellow = Attention, red = Immediate attention */
-  .chip{display:inline-flex;align-items:baseline;gap:8px;font-family:var(--font-body);font-size:0.95rem;font-weight:600;border:1px solid rgba(22,35,61,.45);border-radius:9px;padding:10px 16px;cursor:pointer;user-select:none;}
+  .chip{display:inline-flex;align-items:center;gap:8px;height:44px;font-family:var(--font-body);font-size:0.95rem;font-weight:600;border:1px solid rgba(22,35,61,.45);border-radius:9px;padding:0 18px;cursor:pointer;user-select:none;}
   .chip .n{font-weight:800;}
   .chip[data-sev="medium"]{background:var(--yellow);color:var(--ink);}
   .chip[data-sev="high"]{background:var(--red);color:#fff;}
@@ -123,22 +128,11 @@
   .sec-band:focus-visible{outline:3px solid var(--ink);outline-offset:-3px;}
   .sec-list{margin:0;padding:12px 16px 12px 40px;font-size:1rem;line-height:1.5;color:var(--ink);}
   .sec-list li{padding:1px 0;}
-  .sec-list a, .sec-list .row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;color:inherit;text-decoration:none;}
-  .sec-list a:hover .t{text-decoration:underline;}
-  .sec-list .pg{flex:none;font-size:0.78rem;color:var(--ink-faint);white-space:nowrap;}
-  @media (max-width:640px){
-    /* on a phone the page number becomes a small arrow: same on every line, and it says the line can be tapped */
-    .sec-list .row .pg{display:none;}
-    .sec-list a{align-items:center;}
-    .sec-list a .pg{font-size:0;line-height:1;}
-    .sec-list a .pg::after{content:"›";font-size:1.6rem;color:var(--ink-muted);}
-  }
+  .sec-list .row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;}
+  .sec-list .pg{flex:none;font-size:0.8rem;font-weight:500;color:var(--ink-muted);white-space:nowrap;}
   .top-say{background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:16px 18px;margin-bottom:14px;font-size:1.12rem;line-height:1.3;color:var(--ink);}
   .top-say:empty{display:none;}
   .sec:not(.open) .sec-list{display:none;}
-  .clean-line{margin:2px 2px 0;font-size:0.84rem;color:var(--ink-muted);}
-  .clean-line b{color:var(--good);}
-  .clean-line:empty{display:none;}
 
   .hero{position:relative;width:100vw;margin-left:calc(50% - 50vw);margin-top:8px;}
   .hero img{display:block;width:100%;max-width:420px;height:auto;}
@@ -181,7 +175,7 @@
   .footnote{margin-top:28px;font-size:0.76rem;color:var(--ink-faint);font-family:var(--font-mono);border-top:1px solid var(--border);padding-top:14px;}
   [data-view="inspector"] .admin-only{display:none;}
   [data-view="admin"] .inspector-only{display:none;}
-  @media (max-width:520px){ .brand h1{font-size:2rem;} .meta-top{flex-direction:column;} }
+  @media (max-width:520px){ .brand h1{font-size:2rem;} }
 
   /* ---- print / PDF export ----
      Uses the browser's own print-to-PDF rather than a server-side renderer -
@@ -220,7 +214,6 @@
     .results.visible{display:flex !important;flex-direction:column;}
     .results > .meta-card{order:1;}
     .results > .sections{order:3;}
-    .results > .clean-line{order:3;}
     .results > .inspector-only{order:5;}
     .results > .footnote{order:6;}
     .results > .disclaimer{order:7;}
@@ -248,7 +241,6 @@
     .sec-band{padding:6px 12px;}
     .sec-name{font-size:1.05rem;}
     .sec-list{padding:6px 12px 6px 32px; font-size:0.9rem; line-height:1.4;}
-    .sec-list a{text-decoration:none; color:var(--ink);}
     body.print-quick .sec .sec-list, body.print-quick .inspector-only,
     body.print-quick .footnote, body.print-quick .tip{display:none !important;}
     body.print-quick .sec-band{padding:5px 12px;}
@@ -259,7 +251,6 @@
     .disclaimer{margin-top:10px; padding-top:8px;}
     .disclaimer{gap:3px;}
     .disclaimer p{font-size:0.7rem; line-height:1.4;}
-    .clean-line{font-size:0.74rem;}
     .wrap{max-width:100%;padding:0;}
   }
 </style>
@@ -278,8 +269,7 @@
 
   <div class="topbar">
     <div>
-      <div class="brand"><h1 class="wordmark">Nan<span class="i-dot">ı</span></h1><span class="tag">live</span></div>
-      <p class="subtitle">Training wheels for new-inspector reports — paste a report URL and run a QA pass</p>
+      <div class="brand"><h1 class="wordmark">Nan<span class="i-dot">ı</span></h1><span class="tag">beta</span></div>
       <p class="subtitle print-only">QA report generated by Nani</p>
     </div>
     <div class="topbar-actions">
@@ -287,7 +277,7 @@
         <button type="button" data-set-view="admin" class="active">Nani's Notes</button>
         <button type="button" data-set-view="inspector">The Talk</button>
       </div>
-      <span id="pdf-btn" class="pdf-btns" hidden><button type="button" class="pdf-btn" id="pdf-quick" title="1-2 page summary">Quick PDF</button><button type="button" class="pdf-btn" id="pdf-full" title="Every comment and link">Full PDF</button><button type="button" class="pdf-btn" id="new-btn" title="Clear this report and start over">New report</button></span>
+      <span id="pdf-btn" class="pdf-btns" hidden><button type="button" class="pdf-btn" id="pdf-quick" title="1-2 page summary">Quick PDF</button><button type="button" class="pdf-btn" id="pdf-full" title="Every comment and link">Full PDF</button><button type="button" class="pdf-btn" id="pic-btn" title="One snapshot of all your items, to save or share">Take snapshot</button><button type="button" class="pdf-btn" id="new-btn" title="Clear this report and start over">New report</button></span>
     </div>
   </div>
 
@@ -318,7 +308,10 @@
           <div class="meta-address" id="meta-address"></div>
           <div class="meta-sub"><span>Client: <b id="meta-client"></b></span></div>
         </div>
-        <a class="meta-source" id="meta-source" href="#" target="_blank" rel="noopener">view source report ↗</a>
+        <a class="ig-chip" href="https://www.instagram.com/inspectagram/" target="_blank" rel="noopener" aria-label="Inspectagram on Instagram" title="Inspectagram on Instagram">
+          <img src="/static/lucas.png" width="64" height="64" alt="">
+          <span class="ig-badge"><svg viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="igg" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#FEDA75"/><stop offset=".35" stop-color="#FA7E1E"/><stop offset=".62" stop-color="#D62976"/><stop offset="1" stop-color="#4F5BD5"/></linearGradient></defs><rect x="2.6" y="2.6" width="18.8" height="18.8" rx="5.5" fill="none" stroke="url(#igg)" stroke-width="2.2"/><circle cx="12" cy="12" r="4.3" fill="none" stroke="url(#igg)" stroke-width="2.2"/><circle cx="17.5" cy="6.5" r="1.3" fill="url(#igg)"/></svg></span>
+        </a>
       </div>
       <div class="meta-assessment" id="meta-assessment"></div>
       <div class="chips" id="chips">
@@ -338,9 +331,7 @@
       </div>
     </div>
 
-    <div class="tip">Tap a link and land in the report? Tap <b>?</b> in Inspectagram again — your results are saved, no re-run needed.</div>
     <div class="sections" id="sections"></div>
-    <div class="clean-line" id="clean-line"></div>
 
     <div class="attention"><img src="/static/attention.jpg" width="1100" height="1392" loading="lazy" decoding="async" alt="Attention: the art of exceptional reports. BASEline: every icon needs a focused, clean photo. BlackBOX: your chapter photo should prove operation. Insurance: every question needs an answer, and always document limitations."></div>
     <div class="disclaimer">
@@ -445,7 +436,7 @@ function showError(msg){
 const AREA_LABEL = {
   cover:'Cover', agreement:'Agreement', roof:'Roof', exterior:'Exterior', attic:'Attic',
   interior:'Interior', kitchen:'Kitchen', laundry:'Laundry', bathroom:'Bathroom',
-  mechanical:'Mechanical', insurance:'Insurance', summary:'Summary', other:'Other'
+  mechanical:'Mechanical', insurance:'Insurance', summary:'Summary', report:'Missing items', other:'Other'
 };
 // Two levels on the page: 'high' shows as Immediate attention (red), everything else as Attention (yellow).
 function level(f){ return f.severity === 'high' ? 'high' : 'medium'; }
@@ -463,17 +454,103 @@ function linesOf(f){
   return [{text: (f.issue || '').trim(), anchor: f.anchor, page: f.page, sev: level(f)}];
 }
 
-function lineHtml(l, sourceUrl){
-  const inner = `<span class="t">${esc(l.text)}</span>${l.page ? `<span class="pg">p. ${l.page}</span>` : ''}`;
-  const body = l.anchor
-    ? `<a href="${esc(sourceUrl + '#' + l.anchor)}" target="_blank" rel="noopener" title="Open this spot in the report">${inner}</a>`
-    : `<span class="row">${inner}</span>`;
-  return `<li data-sev="${l.sev}">${body}</li>`;
+function lineHtml(l){
+  // Plain text and a page number. The report links are off for now: leaving Nani to open one
+  // meant coming back to a page that ran the whole check again.
+  return `<li data-sev="${l.sev}"><span class="row"><span class="t">${esc(l.text)}</span>${l.page ? `<span class="pg">p. ${l.page}</span>` : ''}</span></li>`;
 }
 
 function pagesLabel(lines){
   const pages = [...new Set(lines.map(l => l.page).filter(Boolean))].sort((a, b) => a - b);
   return pages.length ? (pages.length === 1 ? 'p. ' : 'pp. ') + pages.join(', ') : '';
+}
+
+let LAST = null;  // what the last run showed, for the picture
+
+function wrapText(ctx, text, maxW){
+  const out = []; let cur = '';
+  String(text).split(/\s+/).forEach(w => {
+    const t = cur ? cur + ' ' + w : w;
+    if(cur && ctx.measureText(t).width > maxW){ out.push(cur); cur = w; } else cur = t;
+  });
+  if(cur) out.push(cur);
+  return out;
+}
+function boxPath(ctx, x, y, w, h, r){
+  ctx.beginPath();
+  if(ctx.roundRect) ctx.roundRect(x, y, w, h, r); else ctx.rect(x, y, w, h);
+}
+
+// One tall picture with every section open. Run once with draw=false to measure, then again to paint.
+function paintPicture(ctx, draw){
+  const W = 1080, M = 44, IN = W - 2 * M, LH = 42, PAD = 24, BAND = 78;
+  const F = {title: 'bold 64px Figtree, Arial, sans-serif', addr: '500 32px Inter, Arial, sans-serif', small: '24px Inter, Arial, sans-serif',
+             head: '46px "Roboto Condensed", "Arial Narrow", sans-serif', body: '30px Inter, Arial, sans-serif', pg: '500 24px Inter, Arial, sans-serif'};
+  let y = M;
+  const put = (t, x, yy, font, color, align) => { if(draw){ ctx.font = font; ctx.fillStyle = color; ctx.textAlign = align || 'left'; ctx.fillText(t, x, yy); } };
+  const box = (x, yy, w, h, r, fill) => { if(draw){ boxPath(ctx, x, yy, w, h, r); ctx.fillStyle = fill; ctx.fill(); } };
+  put('Nani', M, y + 54, F.title, '#16233D'); y += 84;
+  ctx.font = F.addr;
+  wrapText(ctx, LAST.address, IN).forEach(t => { put(t, M, y + 30, F.addr, '#16233D'); y += 42; });
+  put(new Date().toLocaleDateString(undefined, {year:'numeric', month:'long', day:'numeric'}), M, y + 24, F.small, '#51647F'); y += 52;
+  if(LAST.comment){
+    ctx.font = F.addr;
+    const rows = wrapText(ctx, LAST.comment, IN - 2 * PAD), h = rows.length * 42 + 2 * PAD - 6;
+    box(M, y, IN, h, 14, '#FFFFFF');
+    rows.forEach((t, i) => put(t, M + PAD, y + PAD + 30 + i * 42, F.addr, '#16233D'));
+    y += h + 24;
+  }
+  LAST.flagged.forEach(sec => {
+    ctx.font = F.body;
+    const blocks = sec.lines.map((l, i) => ({rows: wrapText(ctx, (i + 1) + '. ' + l.text, IN - 2 * PAD - 96), page: l.page}));
+    const listH = blocks.reduce((n, b) => n + b.rows.length * LH + 8, 0);
+    const h = BAND + PAD + listH + PAD - 8;
+    const red = sec.worst === 'high';
+    box(M, y, IN, h, 16, '#FFFFFF');
+    if(draw){ boxPath(ctx, M, y, IN, BAND, [16, 16, 0, 0]); ctx.fillStyle = red ? '#E85140' : '#FCCC2A'; ctx.fill(); }
+    put(AREA_LABEL[sec.area] || sec.area, M + PAD, y + 55, F.head, red ? '#FFFFFF' : '#16233D');
+    let ly = y + BAND + PAD;
+    blocks.forEach(b => {
+      b.rows.forEach((t, i) => put(t, M + PAD, ly + 30 + i * LH, F.body, '#16233D'));
+      if(b.page) put('p. ' + b.page, M + IN - PAD, ly + 30, F.pg, '#51647F', 'right');
+      ly += b.rows.length * LH + 8;
+    });
+    y += h + 24;
+  });
+  put('Checked with Nani  ·  ' + location.host, M, y + 22, F.small, '#7C8CA3'); y += 22 + M;
+  return y;
+}
+function drawPicture(){
+  const H = paintPicture(document.createElement('canvas').getContext('2d'), false);
+  const c = document.createElement('canvas');
+  c.width = 1080; c.height = Math.ceil(H);
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#F5F7F8'; ctx.fillRect(0, 0, c.width, c.height);
+  paintPicture(ctx, true);
+  return c;
+}
+async function savePicture(){
+  if(!LAST || !LAST.flagged.length) return;
+  const btn = document.getElementById('pic-btn'), label = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Taking snapshot...';
+  try{
+    try{ await Promise.all(['46px "Roboto Condensed"', '30px Inter', 'bold 64px Figtree'].map(f => document.fonts.load(f))); }catch(e){}
+    const blob = await new Promise(res => drawPicture().toBlob(res, 'image/png'));
+    const name = 'nani-' + ((LAST.address || 'report').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'report') + '.png';
+    const file = new File([blob], name, {type: 'image/png'});
+    if(navigator.canShare && navigator.canShare({files: [file]})){
+      try{ await navigator.share({files: [file], title: 'Nani'}); return; }
+      catch(e){ if(e && e.name === 'AbortError') return; }
+    }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  }catch(e){
+    alert("Couldn't take the snapshot. The PDF button still works.");
+  }finally{
+    btn.disabled = false; btn.textContent = label;
+  }
 }
 
 function render(data){
@@ -482,7 +559,6 @@ function render(data){
   document.getElementById('pb-date').textContent = new Date().toLocaleDateString(undefined, {year:'numeric', month:'long', day:'numeric'});
   document.getElementById('meta-client').textContent = data.client_name || 'not found';
   document.getElementById('meta-assessment').textContent = data.overall_assessment || '';
-  document.getElementById('meta-source').href = data.source_url;
 
   const findings = data.findings || [];
   const byArea = {};
@@ -500,13 +576,13 @@ function render(data){
     return {area, items, lines, worst: lines.length ? (lines.some(l => l.sev === 'high') ? 'high' : 'medium') : null};
   });
   const flagged = sectionsData.filter(s => s.worst).sort((a, b) => (b.worst === 'high') - (a.worst === 'high'));
-  const clean = sectionsData.filter(s => !s.worst);
 
   const allLines = flagged.flatMap(s => s.lines);
   document.getElementById('count-high').textContent = allLines.filter(l => l.sev === 'high').length;
   document.getElementById('count-medium').textContent = allLines.filter(l => l.sev !== 'high').length;
 
   document.getElementById('top-say').textContent = data.report_comment || '';
+  LAST = {address: data.property_address || '', flagged, comment: data.report_comment || ''};
   sectionsEl.innerHTML = '';
   flagged.forEach(({area, lines, worst}) => {
     const sec = document.createElement('div');
@@ -519,7 +595,7 @@ function render(data){
         <span class="sec-meta">${lines.length}${pages ? ' · ' + pages : ''}</span>
         <span class="band-arrow" aria-hidden="true"></span>
       </div>
-      <ol class="sec-list">${lines.map(l => lineHtml(l, data.source_url)).join('')}</ol>
+      <ol class="sec-list">${lines.map(lineHtml).join('')}</ol>
     `;
     const band = sec.querySelector('.sec-band');
     const toggle = () => band.setAttribute('aria-expanded', sec.classList.toggle('open'));
@@ -527,8 +603,6 @@ function render(data){
     band.addEventListener('keydown', e => { if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); toggle(); } });
     sectionsEl.appendChild(sec);
   });
-  document.getElementById('clean-line').innerHTML = clean.length
-    ? '<b>✓</b> Nothing flagged: ' + clean.map(s => esc(AREA_LABEL[s.area] || s.area)).join(', ') : '';
 
   // Each button shows only its own color; pressing it again shows everything.
   const chips = [...document.querySelectorAll('.chip')];
@@ -595,6 +669,7 @@ document.getElementById('new-btn').addEventListener('click', () => {
   urlInput.focus();
 });
 document.getElementById('pdf-quick').addEventListener('click', () => printAs('quick'));
+document.getElementById('pic-btn').addEventListener('click', savePicture);
 document.getElementById('pdf-full').addEventListener('click', () => printAs('full'));
 
 
