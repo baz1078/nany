@@ -873,6 +873,9 @@ def review_report(url):
     # Exterior entries no longer need a location (owner, 2026-11-13). The finding is still built above so
     # the review's input stays exactly as it was; it is only left out of the result.
     shown_code = [c for c in code_items if not (c["tag"] == "Missing location" and c["area"] == "exterior")]
+    # A chapter's "Additional Observations" has its text in the report body; its Summary entry is just a
+    # link and always reads empty, so "Nothing written" there is a false alarm (owner, 2026-11-19).
+    shown_code = [c for c in shown_code if not c["section"].startswith("The Summary — Additional Observations")]
     extra = find_missing_pages(text)
     kept = _drop_out_of_scope(_drop_code_duplicates(result.get("findings", []), code_items), text, blanks)
     if any("Sample contract" in l["what"] for f in extra for l in f["lines"]):
