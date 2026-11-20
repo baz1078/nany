@@ -685,6 +685,21 @@ def _sample_contract_dupe(item):
     return item.get("source") != "code" and "sample contract" in issue
 
 
+def _blackbox_placeholders(text):
+    """Chapters whose Blackbox photo is still Inspectagram's 'Walk & Talk' placeholder (a stock picture, not
+    one of the inspector's own photos). One line per chapter (owner, 2026-11-19)."""
+    lines, out, chapter = _clean_lines(text), [], ""
+    for i, l in enumerate(lines):
+        if _PAGE_ANCHOR_RE.fullmatch(l) and i + 1 < len(lines):
+            head = lines[i + 1].rstrip(" +").strip()
+            chapter = head if 0 < len(head) <= 30 and not head.isdigit() else chapter
+        elif l.lower().rstrip(": ") == "blackbox":
+            media = next((x for x in reversed(lines[max(0, i - 3):i]) if "[PHOTO]" in x or "[STOCK-IMAGE]" in x), "")
+            if "[STOCK-IMAGE]" in media and "[PHOTO]" not in media:
+                out.append(_line((chapter + " Blackbox").strip(), "Missing photo", _first_anchor(media)))
+    return [x for x in out if x]
+
+
 def find_missing_pages(text):
     """What every report should carry (owner, 2026-11-18): the standard pages, a contract that is not the
     sample one, and a temperature on the Elements page. Pages are read from the report's menu; if it does not
@@ -701,6 +716,7 @@ def find_missing_pages(text):
     sample = _sample_contract_anchor(text)
     if sample:
         lines.append(_line("Contract", "Sample contract still in the report", sample))
+    lines += _blackbox_placeholders(text)
     lines = [l for l in lines if l]
     if not lines:
         return []
@@ -814,6 +830,40 @@ def _two_cover_dates(item):
             and bool(re.search(r"\bdates?\b", item.get("issue") or "", re.IGNORECASE)))
 
 
+_BLANKS = "  ⠀"  # space, no-break space, braille blank (Inspectagram pads empty notes with it)
+
+
+def _squash(s):
+    return re.sub(r"[^a-z0-9]", "", (s or "").lower())
+
+
+def _photo_only_names(text):
+    """Labels of rows that hold a photo and no text ('Roof Observation - (2)' followed by blank padding).
+    A photo with no comment is fine (owner, 2026-11-19), but the review model reads such a row as an empty
+    cell, so code finds them from the report text."""
+    lines, names = _clean_lines(text), set()
+    for i, l in enumerate(lines[:-1]):
+        if len(l) > 70 or "[" in l or l.startswith("+") or not l.strip(_BLANKS) or lines[i + 1].strip(_BLANKS):
+            continue
+        for p in reversed(lines[max(0, i - 8):i]):
+            if _PAGE_ANCHOR_RE.fullmatch(p):
+                break
+            if "[PHOTO]" in p:
+                if len(_squash(l)) >= 6:
+                    names.add(_squash(l))
+                break
+    return names
+
+
+def _photo_only_finding(item, names):
+    """The review's 'empty cell' finding about a row that is only a photo."""
+    if (not names or item.get("source") == "code" or item.get("tag") != "Missing info"
+            or item.get("area") in ("summary", "insurance", "cover")):
+        return False
+    blob = _squash((item.get("issue") or "") + " " + (item.get("section") or ""))
+    return any(n in blob for n in names)
+
+
 def _drop_out_of_scope(items, text="", insurance_blanks=None):
     """Rules enforced on the review's output, so the review prompt itself never has to change:
     - a BlackBOX item does not need its own Summary entry (the General Notes pointer covers it);
@@ -823,8 +873,10 @@ def _drop_out_of_scope(items, text="", insurance_blanks=None):
     - the Insurance page is only checked for blank fields; two dates on the cover are fine."""
     labels = [b.split(" (")[0].lower() for b in insurance_blanks or []]
     inside, outside = blackbox_texts(text) if text else ("", "")
+    photo_only = _photo_only_names(text) if text else set()
     return [it for it in items
             if not _PHOTO_ONLY_RE.search(it.get("issue", "")) and not _NO_LOCATION_RE.search(it.get("issue", ""))
+            and not _photo_only_finding(it, photo_only)
             and not _about_blackbox(it, inside, outside) and not _summary_gap(it)
             and not _insurance_not_blank(it, labels) and not _two_cover_dates(it)]
 

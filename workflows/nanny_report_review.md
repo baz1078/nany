@@ -73,6 +73,14 @@ reports.
   company/account on Inspectagram; verify if a report from another company 403s.
 
 ## Self-Improvement Log
+- 2026-11-19: Two more rules in code. (1) A row that is only a photo with no text ("Roof Observation - (2)",
+  "Additional Vent(s)") is fine: `_photo_only_names` finds them from the report text (a label followed by
+  blank/braille padding, with a [PHOTO] just before) and `_drop_out_of_scope` drops the model's "empty cell"
+  finding about them. (2) A chapter whose Blackbox photo is still the "Walk & Talk" stock placeholder
+  ([STOCK-IMAGE] right before the "Blackbox" label) is flagged, one line per chapter, in "Missing items"
+  (`_blackbox_placeholders`). Older reports use "General Notes" instead of a "Blackbox" label and are not
+  affected. Not built: the gray "+" empty slot (`<td class="cell-search">`, shows as a lone "+" line) because it
+  also appears on fine rows; waiting on the owner's rule. Not yet seen: a filled Blackbox photo in a live run.
 - 2026-11-18: Owner's round after Lucas's feedback. Rules in code on the review's output: an item missing
   from the Summary is never flagged (leaving one out takes a deliberate click), Insurance is only checked
   for blank fields and "####", two dates on the cover are fine. New code-made "Missing items" finding
