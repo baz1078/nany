@@ -479,6 +479,19 @@ function boxPath(ctx, x, y, w, h, r){
   if(ctx.roundRect) ctx.roundRect(x, y, w, h, r); else ctx.rect(x, y, w, h);
 }
 
+// "Nani" written the way the page writes it: Montserrat 800, tight spacing, a dotless i with a red square dot.
+function putWordmark(ctx, x, base, size, color){
+  ctx.font = '800 ' + size + 'px Montserrat, Figtree, Arial, sans-serif';
+  ctx.textAlign = 'left'; ctx.fillStyle = color;
+  try{ ctx.letterSpacing = (-0.02 * size) + 'px'; }catch(e){}
+  const w1 = ctx.measureText('Nan').width, wi = ctx.measureText('ı').width, d = 0.17 * size;
+  ctx.fillText('Nan', x, base);
+  ctx.fillText('ı', x + w1, base);
+  ctx.fillStyle = '#F5003B';
+  ctx.fillRect(x + w1 + wi / 2 - 0.01 * size - d / 2, base - 1.062 * size, d, d);  // placed to match the page's wordmark
+  try{ ctx.letterSpacing = '0px'; }catch(e){}
+}
+
 // One tall picture with every section open. Run once with draw=false to measure, then again to paint.
 function paintPicture(ctx, draw){
   const W = 1080, M = 44, IN = W - 2 * M, LH = 42, PAD = 24, BAND = 78;
@@ -487,7 +500,8 @@ function paintPicture(ctx, draw){
   let y = M;
   const put = (t, x, yy, font, color, align) => { if(draw){ ctx.font = font; ctx.fillStyle = color; ctx.textAlign = align || 'left'; ctx.fillText(t, x, yy); } };
   const box = (x, yy, w, h, r, fill) => { if(draw){ boxPath(ctx, x, yy, w, h, r); ctx.fillStyle = fill; ctx.fill(); } };
-  put('Nani', M, y + 54, F.title, '#16233D'); y += 84;
+  if(draw) putWordmark(ctx, M, y + 54, 64, '#16233D');
+  y += 84;
   ctx.font = F.addr;
   wrapText(ctx, LAST.address, IN).forEach(t => { put(t, M, y + 30, F.addr, '#16233D'); y += 42; });
   put(new Date().toLocaleDateString(undefined, {year:'numeric', month:'long', day:'numeric'}), M, y + 24, F.small, '#51647F'); y += 52;
@@ -515,7 +529,7 @@ function paintPicture(ctx, draw){
     });
     y += h + 24;
   });
-  put('Checked with Nani  ·  ' + location.host, M, y + 22, F.small, '#7C8CA3'); y += 22 + M;
+  y += M - 24;
   return y;
 }
 function drawPicture(){
@@ -532,7 +546,7 @@ async function savePicture(){
   const btn = document.getElementById('pic-btn'), label = btn.textContent;
   btn.disabled = true; btn.textContent = 'Taking snapshot...';
   try{
-    try{ await Promise.all(['46px "Roboto Condensed"', '30px Inter', 'bold 64px Figtree'].map(f => document.fonts.load(f))); }catch(e){}
+    try{ await Promise.all(['46px "Roboto Condensed"', '30px Inter', '800 64px Montserrat'].map(f => document.fonts.load(f))); }catch(e){}
     const blob = await new Promise(res => drawPicture().toBlob(res, 'image/png'));
     const name = 'nani-' + ((LAST.address || 'report').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'report') + '.png';
     const file = new File([blob], name, {type: 'image/png'});
