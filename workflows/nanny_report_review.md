@@ -73,6 +73,14 @@ reports.
   company/account on Inspectagram; verify if a report from another company 403s.
 
 ## Self-Improvement Log
+- 2026-11-23: 8 of 250 live runs failed with "Expecting value: line 1 column 1" (the review model's reply was not
+  readable JSON; three in a row on one report that morning). `_read_reply` now takes the text blocks only, drops
+  code fences, and reads from the first "{" to the last "}"; if it still can't read it, the review is asked once
+  more (a second ~9 cents, only on a bad reply). Still bad: the student sees "Nani got tangled on that one. Tap
+  Run it again." and the admin log keeps "unreadable reply: stop=..., N chars, starts: ..." (first 40 characters
+  of the reply, also printed to the Render log). A "stop=max_tokens" there would mean the reply was cut off, which
+  retrying will not fix (raise max_tokens or shorten the output instead). Prompt and input untouched. Also noted:
+  the admin page groups runs by address, so one student's different drafts look like one wobbling report.
 - 2026-11-19: Two more rules in code. (1) A row that is only a photo with no text ("Roof Observation - (2)",
   "Additional Vent(s)") is fine: `_photo_only_names` finds them from the report text (a label followed by
   blank/braille padding, with a [PHOTO] just before) and `_drop_out_of_scope` drops the model's "empty cell"

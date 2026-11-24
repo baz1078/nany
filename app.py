@@ -17,7 +17,7 @@ import time
 from flask import Flask, Response, jsonify, make_response, render_template, request
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from tools.review_report import review_report
+from tools.review_report import review_report, ReplyUnreadable
 from tools.fetch_report import BadLink
 import admin_stats
 
@@ -53,6 +53,9 @@ def api_review():
     except BadLink as exc:  # a link problem, not a Nani problem: say what to do instead
         admin_stats.log_run(None, None, time.time() - started, False, src=src, error="bad link: " + str(exc)[:90], url=url)
         return jsonify({"error": str(exc)}), 400
+    except ReplyUnreadable as exc:  # not the student's fault and not a link problem: say to try again
+        admin_stats.log_run(None, None, time.time() - started, False, src=src, error="unreadable reply: " + str(exc)[:120], url=url)
+        return jsonify({"error": "Nani got tangled on that one. Tap Run it again."}), 502
     except Exception as exc:
         admin_stats.log_run(None, None, time.time() - started, False, src=src, error=str(exc), url=url)
         return jsonify({"error": f"Nani couldn't finish that review: {exc}"}), 502

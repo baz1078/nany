@@ -881,6 +881,38 @@ def _drop_out_of_scope(items, text="", insurance_blanks=None):
             and not _insurance_not_blank(it, labels) and not _two_cover_dates(it)]
 
 
+class ReplyUnreadable(RuntimeError):
+    """The review model answered, twice, with something that is not the JSON Nani needs."""
+
+
+def _read_reply(message):
+    """Return (result dict, "") from the model's reply, or (None, why) when it can't be read.
+
+    Takes the text blocks only (a reply can start with a non-text block), drops code fences, and if the
+    reply has words around the JSON, reads from the first "{" to the last "}".
+    """
+    raw = "".join(getattr(b, "text", "") or "" for b in (message.content or []) if getattr(b, "type", "") == "text").strip()
+    candidates = []
+    body = raw
+    if body.startswith("```"):
+        body = body.split("\n", 1)[1] if "\n" in body else ""
+    if body.endswith("```"):
+        body = body.rsplit("```", 1)[0]
+    candidates.append(body.strip())
+    start, end = raw.find("{"), raw.rfind("}")
+    if 0 <= start < end:
+        candidates.append(raw[start:end + 1])
+    for c in candidates:
+        try:
+            out = json.loads(c)
+        except ValueError:
+            continue
+        if isinstance(out, dict):
+            return out, ""
+    why = "stop=%s, %d chars, starts: %r" % (getattr(message, "stop_reason", "?"), len(raw), re.sub(r"\s+", " ", raw[:40]))
+    return None, why
+
+
 def review_report(url):
     text = fetch_report_text(url)
     hits = find_literal_hits(text)
@@ -907,20 +939,24 @@ def review_report(url):
     # Streamed rather than a single blocking create() call — a non-streamed request
     # that runs long risks a client-side read timeout even while the server is still
     # generating normally (see https://docs.anthropic.com/en/api/errors#long-requests).
-    with client.messages.stream(
-        model=MODEL,
-        max_tokens=12000,
-        temperature=0,
-        system=SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": f"Report URL: {url}\n\n{hits_block}Report text:\n\n{text}"}],
-    ) as stream:
-        message = stream.get_final_message()
-    raw = message.content[0].text.strip()
-    if raw.startswith("```"):
-        raw = raw.split("\n", 1)[1]
-    if raw.endswith("```"):
-        raw = raw.rsplit("```", 1)[0]
-    result = json.loads(raw.strip())
+    # The prompt and the input are exactly as before; only the reading of the reply is more forgiving.
+    user_content = f"Report URL: {url}\n\n{hits_block}Report text:\n\n{text}"
+    result = None
+    for attempt in (1, 2):
+        with client.messages.stream(
+            model=MODEL,
+            max_tokens=12000,
+            temperature=0,
+            system=SYSTEM_PROMPT,
+            messages=[{"role": "user", "content": user_content}],
+        ) as stream:
+            message = stream.get_final_message()
+        result, why = _read_reply(message)
+        if result is not None:
+            break
+        print(f"[nani] review reply unreadable (try {attempt}): {why}", file=sys.stderr, flush=True)
+    if result is None:
+        raise ReplyUnreadable(why)
     result.setdefault("also_noticed", [])
     # Exterior entries no longer need a location (owner, 2026-11-13). The finding is still built above so
     # the review's input stays exactly as it was; it is only left out of the result.
