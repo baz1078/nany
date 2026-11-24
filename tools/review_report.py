@@ -585,6 +585,7 @@ _CHAPTER_NAMES = {"roof": "Roof", "exterior": "Exterior", "attic": "Attic", "int
                   "kitchen": "Kitchen", "laundromat": "Laundry", "laundry": "Laundry", "bathroom": "Bathroom",
                   "mechanical": "Mechanical", "garage": "Garage"}
 _LOC_RE = re.compile(r"\bL:\s*(?!Click Here)\S")
+_EVERYWHERE_RE = re.compile(r"\b(?:throughout|multiple|various|several)\b", re.IGNORECASE)
 
 
 def _chapter_of(line):
@@ -612,7 +613,10 @@ def find_missing_locations(text):
         while j < len(lines) and not _SEV_ICON_RE.fullmatch(lines[j]) and not _anchor_or_media(lines[j]) and not _chapter_of(lines[j]):
             body.append(lines[j])
             j += 1
-        if chapter in ("Interior", "Exterior") and not _LOC_RE.search(" ".join(body)):
+        text_of_entry = " ".join(body)
+        # "throughout the property", "multiple areas": no single place to point to, so no location is needed
+        if (chapter in ("Interior", "Exterior") and not _LOC_RE.search(text_of_entry)
+                and not _EVERYWHERE_RE.search(text_of_entry)):
             name = re.split(r"\s*:", name_line, maxsplit=1)[0].replace("⠀", "").strip()
             anchor = _first_anchor(lines[j]) if j < len(lines) and _anchor_or_media(lines[j]) else None
             missing.setdefault(chapter, []).append((name, anchor))
@@ -630,7 +634,7 @@ def find_missing_locations(text):
 
 
 _PAGE_CHECKS = [("The Elements", r"element"), ("The Method", r"method"), ("Disclaimer", r"disclaimer"),
-                ("Icons and Legends", r"legend"), ("72 Seconds", r"72\s*seconds"), ("Contract", r"agreement|contract")]
+                ("Icons and Legends", r"legend"), ("Contract", r"agreement|contract")]
 _WEATHER_RE = re.compile(r"\b(?:sunny|cloud\w*|overcast|rain\w*|shower\w*|snow\w*|sleet|fog\w*|mist\w*|wind\w*|storm\w*"
                          r"|thunder\w*|clear|hail|drizzle|haze)\b", re.IGNORECASE)
 _TEMP_RE = re.compile(r"[-+]?\d{1,3}\s*(?:[°º]\s*[CcFf]?|[CcFf]\b)")
@@ -708,7 +712,8 @@ def find_missing_pages(text):
     lines = []
     labels = _menu_labels(text)
     if "The Cover" in labels and len(labels) >= 6:
-        lines += [_line(name, "Missing page") for name, pat in _PAGE_CHECKS
+        # A contract is sometimes left out on purpose, so it reads "Not present" (a heads-up, not a correction)
+        lines += [_line(name, "Not present" if name == "Contract" else "Missing page") for name, pat in _PAGE_CHECKS
                   if not any(re.search(pat, l, re.IGNORECASE) for l in labels)]
     temp_page = _elements_without_temperature(text)
     if temp_page:
@@ -716,7 +721,6 @@ def find_missing_pages(text):
     sample = _sample_contract_anchor(text)
     if sample:
         lines.append(_line("Contract", "Sample contract still in the report", sample))
-    lines += _blackbox_placeholders(text)
     lines = [l for l in lines if l]
     if not lines:
         return []
@@ -724,6 +728,33 @@ def find_missing_pages(text):
                           "Missing from the report: " + ", ".join(l["item"] for l in lines) + ".",
                           None,  # each line carries its own page, if it has one
                           "Every report carries these.", "Add the missing items.", lines=lines)]
+
+
+def _has_conduct_page(text, labels):
+    """The Conduct chapter (the page that introduces the realtor, 'The Business of People') is in the menu
+    or heads a page."""
+    if any(re.search(r"conduct", l, re.IGNORECASE) for l in labels):
+        return True
+    lines = _clean_lines(text)
+    return any(_PAGE_ANCHOR_RE.fullmatch(l) and i + 1 < len(lines) and lines[i + 1].rstrip(" +").strip().lower() == "conduct"
+               for i, l in enumerate(lines))
+
+
+def find_missed_opportunities(text):
+    """Ideas, not mistakes (owner, 2026-11-24): things a good report usually carries that this one does not.
+    Shown last, in its own orange section, as a plain list of names; nothing here needs fixing. Returns
+    [{"item": ..., "anchor": ...}]. The page checks read the report's menu and stay silent when it does not look
+    like the usual one. Not in the review's input and not counted as findings."""
+    out = []
+    labels = _menu_labels(text)
+    if "The Cover" in labels and len(labels) >= 6:
+        if not _has_conduct_page(text, labels):
+            out.append({"item": "Conduct page"})
+        if not any(re.search(r"72\s*seconds", l, re.IGNORECASE) for l in labels):
+            out.append({"item": "72 Seconds"})
+    for l in _blackbox_placeholders(text):  # a chapter whose Blackbox photo is still the stock placeholder
+        out.append({"item": l["item"], **({"anchor": l["anchor"]} if l.get("anchor") else {})})
+    return out
 
 
 def find_code_findings(text):
@@ -864,6 +895,36 @@ def _photo_only_finding(item, names):
     return any(n in blob for n in names)
 
 
+_ATTENTION_ICON_RE = re.compile(r"\[[^\]]*attention[^\]]*icon\]", re.IGNORECASE)  # Attention and Immediate attention
+_EMPTY_CELL_RE = re.compile(
+    r"\b(?:only whitespace|whitespace|no (?:issue|action|notes?|text|comment|observation|content|description)"
+    r"|nothing (?:written|under|in)|empty|blank|no content|label but)\b", re.IGNORECASE)
+
+
+def _attention_entry_names(text):
+    """Names of the entries that carry an Attention or Immediate attention icon ('[attention icon]' then
+    'Door Hinges:'), squashed for matching."""
+    lines, names = _clean_lines(text), set()
+    for i, l in enumerate(lines[:-1]):
+        if _ATTENTION_ICON_RE.fullmatch(l):
+            name = _squash(re.split(r"\s*:", lines[i + 1], maxsplit=1)[0])
+            if len(name) >= 4:
+                names.add(name)
+    return names
+
+
+def _empty_row_without_icon(item, icon_names):
+    """The review's 'a row with a label and nothing written' finding, about a row with no Attention or
+    Immediate attention icon. A photo tile with just a name, or a 'Not Inspected' item with its reason, is
+    fine (owner, 2026-11-24): the note is only expected where the icon says something needs attention."""
+    if (item.get("source") == "code" or item.get("tag") != "Missing info"
+            or item.get("area") in ("summary", "insurance", "cover", "agreement")
+            or not _EMPTY_CELL_RE.search(item.get("issue") or "")):
+        return False
+    blob = _squash((item.get("issue") or "") + " " + (item.get("section") or ""))
+    return not any(n in blob for n in icon_names)
+
+
 def _drop_out_of_scope(items, text="", insurance_blanks=None):
     """Rules enforced on the review's output, so the review prompt itself never has to change:
     - a BlackBOX item does not need its own Summary entry (the General Notes pointer covers it);
@@ -874,9 +935,11 @@ def _drop_out_of_scope(items, text="", insurance_blanks=None):
     labels = [b.split(" (")[0].lower() for b in insurance_blanks or []]
     inside, outside = blackbox_texts(text) if text else ("", "")
     photo_only = _photo_only_names(text) if text else set()
+    icon_names = _attention_entry_names(text) if text else None
     return [it for it in items
             if not _PHOTO_ONLY_RE.search(it.get("issue", "")) and not _NO_LOCATION_RE.search(it.get("issue", ""))
             and not _photo_only_finding(it, photo_only)
+            and not (icon_names is not None and _empty_row_without_icon(it, icon_names))
             and not _about_blackbox(it, inside, outside) and not _summary_gap(it)
             and not _insurance_not_blank(it, labels) and not _two_cover_dates(it)]
 
@@ -980,6 +1043,12 @@ def review_report(url):
         for line in item.get("lines") or []:
             if line.get("anchor"):
                 line["page"] = pages.get(line["anchor"])
+    # Missed opportunities are ideas, not mistakes: kept out of the findings so they never count, change the
+    # report comment, or reach the admin log's finding counts.
+    result["opportunities"] = find_missed_opportunities(text)
+    for o in result["opportunities"]:
+        if o.get("anchor"):
+            o["page"] = pages.get(o["anchor"])
     result["report_comment"] = report_comment(result.get("findings"), result["report_hash"])
     return result
 

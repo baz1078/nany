@@ -73,6 +73,22 @@ reports.
   company/account on Inspectagram; verify if a report from another company 403s.
 
 ## Self-Improvement Log
+- 2026-11-24: Owner's round after Lucas's own report (9c7b4fdf) came back with 19 flags, 13 of them false.
+  (1) "Missing observation note" on photo-and-name tiles (thermal tiles, appliance row) and on a "Not Inspected"
+  item with a reason: those rows use another invisible blank (U+200E) than the one the Nov 19 rule knew.
+  New rule `_empty_row_without_icon`: the model's "a row with a label and nothing written" finding is kept only
+  when the row carries an Attention or Immediate attention icon (`_attention_entry_names`). (2) A Summary entry
+  that says "throughout", "multiple", "various" or "several" needs no location (`_EVERYWHERE_RE`); Lucas's
+  Door Hinges was one, his "at the windows" / "in the flooring" entries still ask for one (owner to decide).
+  (3) "Contract: Missing page" now reads "Contract: Not present." (left out on purpose sometimes; a heads-up).
+  (4) New last section "Missed opportunities" (orange, `#f87700`, bullets, no counts, hidden by the red/yellow
+  buttons): Conduct page (the realtor chapter, "The Business of People"), 72 Seconds page, and chapters whose
+  Blackbox photo is still the stock placeholder. 72 Seconds and Blackbox moved out of "Missing items". Built in
+  code (`find_missed_opportunities`), returned as `result["opportunities"]`, kept out of `findings` so they never
+  change counts, the report comment or the admin log. Not built: a Lot7 line (owner: back burner, maybe "L7 URL");
+  a check that the 72 Seconds logo is a link (the report's page source shows the logo as a plain image even on
+  Lucas's own report, so a link check from the text is not possible; only the page's presence is checked);
+  "no Blackbox block at all" in a chapter (older reports say "General Notes").
 - 2026-11-23: 8 of 250 live runs failed with "Expecting value: line 1 column 1" (the review model's reply was not
   readable JSON; three in a row on one report that morning). `_read_reply` now takes the text blocks only, drops
   code fences, and reads from the first "{" to the last "}"; if it still can't read it, the review is asked once
