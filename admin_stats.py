@@ -44,7 +44,8 @@ def clean_src(src):
 
 def finding_labels(findings):
     """Short 'area | tag | section' labels - what was flagged, without any report wording."""
-    return [" | ".join(str(f.get(k) or "")[:60] for k in ("area", "tag", "section")) for f in (findings or [])]
+    return [" | ".join(str(f.get(k) or "")[:60] for k in ("area", "tag", "section")) + (" | code" if f.get("source") == "code" else "")
+            for f in (findings or [])]  # '| code' marks the ones found by code, so a run's model-made findings can be told apart
 
 
 def clean_url(url):
@@ -141,13 +142,13 @@ def csv_text():
     out = io.StringIO()
     w = csv.writer(out)
     w.writerow(["time", "inspector", "email", "phone", "matched_by_address", "source", "address", "report_link",
-                "findings", "seconds", "status", "note", "report_text_vs_previous_run"])
+                "findings", "seconds", "status", "note", "report_text_vs_previous_run", "flagged"])
     for r in _load(_tz()):
         w.writerow([_csv_cell(v) for v in (
             r["local"].strftime("%Y-%m-%d %H:%M"), r["name"], r["email"], r["phone"], "yes" if r["inferred"] else "",
             r["source"], r["address"], r["url"], r["findings"], r["seconds"], "ok" if r["ok"] else "failed",
             r["error"] or ("no inspector found" if r["ok"] and not (r["name"] or r["email"]) and r["how"] == "none" else ""),
-            r["text"])])
+            r["text"], " ; ".join(r["items"]))])  # what was flagged: area | tag | section (| code), no report wording
     return out.getvalue()
 
 
