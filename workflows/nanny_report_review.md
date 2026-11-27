@@ -73,6 +73,13 @@ reports.
   company/account on Inspectagram; verify if a report from another company 403s.
 
 ## Self-Improvement Log
+- 2026-11-27: New look (page only, backend untouched). Every finding is red (#FF003C, Inspectagram's brand red);
+  the Attention / Immediate split and its count buttons are gone (`level()` always returns 'high'). A red "Fix it!"
+  label (not a button) sits in the address card, which shows the street only (`streetOf`) plus "Correct almost
+  EVERYTHING directly from the Summary."; no client line; the label and line hide when nothing is found. First card =
+  Lucas's photo + the one report comment in quotes. Missed opportunities is slate (#43566A). Page background #EAEAEA so
+  the white cards stand out. Section headings, address and quote use Lato. DISCLAIMER: is a bold run-in label. The
+  Take snapshot picture uses the same colours. No grade / A+ (owner dropped it; no agreed meaning for grades).
 - 2026-11-27: Round 1 of the owner's "Report Corrections" list, all in code, prompt untouched. Icon vs note:
   flag ONLY an Immediate icon with an Observation note (`find_icon_note_findings`); the model's own icon/note
   findings are dropped (`_icon_note_dupe`). Insurance: a bare n/a is an answer (blanks and #### still count).

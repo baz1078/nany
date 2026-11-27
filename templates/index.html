@@ -6,17 +6,17 @@
 <title>Nani</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@500;600;700;800&family=Roboto+Condensed:wght@400&family=Montserrat:wght@700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@500;600;700;800&family=Roboto+Condensed:wght@400&family=Montserrat:wght@700;800;900&family=Inter:wght@400;500;600;700&family=Lato:wght@400;700;900&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#F5F7F8; --surface:#FFFFFF; --surface-2:#EDF1F3;
+    --bg:#EAEAEA; --surface:#FFFFFF; --surface-2:#EDF1F3;
     --ink:#16233D; --ink-muted:#51647F; --ink-faint:#7C8CA3; --border:#DBE2E8;
     --accent:#0D9488; --accent-ink:#0B4F48; --accent-bg:#CCF3EE;
     --sev-high:#B93A22; --sev-high-bg:#FBE5E0; --sev-high-bd:#EFB9A8;
     --sev-medium:#96660A; --sev-medium-bg:#FBEDD3; --sev-medium-bd:#EACB88;
     --sev-low:#3E6096; --sev-low-bg:#E6EDF6; --sev-low-bd:#B9CBE6;
     --good:#2E7D4F; --good-bg:#E1F1E6; --good-bd:#AED9BE;
-    --red:#E85140; --yellow:#FCCC2A; --green:#34BB09;
+    --red:#FF003C; --yellow:#FCCC2A; --green:#34BB09; --slate:#43566A;  /* red + slate: Inspectagram's brand colours */
     --danger:#B93A22; --danger-bg:#FBE5E0;
     --shadow: 0 1px 2px rgba(22,35,61,0.06), 0 8px 24px -12px rgba(22,35,61,0.12);
     --font-display:'Figtree', -apple-system, 'Segoe UI', sans-serif;
@@ -90,27 +90,23 @@
 
   .meta-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px 22px;box-shadow:var(--shadow);margin-bottom:18px;}
   .meta-top{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:flex-start;}
-  .meta-address{font-family:var(--font-mono);font-weight:500;font-size:1.05rem;color:var(--ink);}
-  .meta-sub{font-size:0.82rem;color:var(--ink-muted);margin-top:4px;display:flex;gap:14px;flex-wrap:wrap;}
-  .meta-sub b{color:var(--ink);font-weight:600;}
-  /* Inspectagram's Instagram page: the round photo in the corner of the card, with a small Instagram mark */
-  .ig-chip{position:relative;display:block;width:64px;height:64px;flex:none;border-radius:50%;text-decoration:none;}
-  .ig-chip img{width:64px;height:64px;border-radius:50%;display:block;box-shadow:0 0 0 2px #fff, 0 1px 5px rgba(22,35,61,.3);}
-  .ig-badge{position:absolute;right:-5px;bottom:-5px;width:27px;height:27px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(22,35,61,.35);}
-  .ig-badge svg{width:17px;height:17px;display:block;}
+  .meta-address{font-family:'Lato',var(--font-body);font-weight:900;font-size:1.7rem;line-height:1.15;color:var(--ink);}
+  .meta-sub{font-family:'Lato',var(--font-body);font-size:1rem;color:var(--ink);margin-top:6px;}
+  .meta-sub b{color:var(--ink);font-weight:900;}
+  /* first card: Inspectagram's round photo, who is talking, and the one comment for the whole report */
+  .lead-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:16px 18px;margin-bottom:14px;}
+  .lead-top{display:flex;align-items:center;gap:12px;}
+  .lead-name{font-family:'Lato',var(--font-body);font-weight:700;font-size:1.05rem;line-height:1.2;}
+  .lead-handle{font-size:0.82rem;color:var(--ink-muted);}
+  .ig-chip{position:relative;display:block;width:58px;height:58px;flex:none;border-radius:50%;text-decoration:none;}
+  .ig-chip img{width:58px;height:58px;border-radius:50%;display:block;box-shadow:0 0 0 2px #fff, 0 1px 5px rgba(22,35,61,.3);}
   .ig-chip:hover img{box-shadow:0 0 0 2px #fff, 0 0 0 4px var(--ink);}
   .ig-chip:focus-visible{outline:3px solid var(--ink);outline-offset:4px;}
   .meta-assessment{margin-top:14px;padding-top:14px;border-top:1px dashed var(--border);font-size:0.92rem;color:var(--ink-muted);}
 
   .chips{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;}
-  /* two levels, in the report's own words: yellow = Attention, red = Immediate attention */
-  .chip{display:inline-flex;align-items:center;gap:8px;height:44px;font-family:var(--font-body);font-size:0.95rem;font-weight:600;border:1px solid rgba(22,35,61,.45);border-radius:9px;padding:0 18px;cursor:pointer;user-select:none;}
-  .chip .n{font-weight:800;}
-  .chip[data-sev="medium"]{background:var(--yellow);color:var(--ink);}
-  .chip[data-sev="high"]{background:var(--red);color:#fff;}
-  .chip.active{box-shadow:0 0 0 3px var(--ink);}
-  .chip.dim{opacity:0.45;}
-  .chip:focus-visible{outline:2px solid var(--ink);outline-offset:2px;}
+  /* one level: every finding is red, and "Fix it!" tells the reader that all the red below needs fixing (a label, not a button) */
+  .chip{display:inline-flex;align-items:center;height:48px;font-family:'Lato',var(--font-body);font-size:1.5rem;font-weight:700;background:var(--red);color:#fff;border:1px solid rgba(0,0,0,.2);border-radius:9px;padding:0 20px;box-shadow:inset 0 -3px 0 rgba(0,0,0,.12);user-select:none;}
   @media screen{ .meta-assessment{display:none;} }
 
   .section-label{font-family:var(--font-mono);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--ink-faint);margin:22px 2px 8px;}
@@ -118,14 +114,13 @@
   /* ---- sections: one card each. A colored band, the short numbered lines, then one comment ---- */
   .sections{margin-top:18px;}
   .sec{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:var(--shadow);margin-bottom:14px;}
-  .sec.band-high{--band:var(--red);--band-ink:#fff;}
-  .sec.band-medium{--band:var(--yellow);--band-ink:var(--ink);}
-  .sec.band-opp{--band:#f87700;--band-ink:var(--ink);}  /* Missed opportunities: the same orange as the closing panel */
+  .sec.band-high, .sec.band-medium{--band:var(--red);--band-ink:#fff;}
+  .sec.band-opp{--band:var(--slate);--band-ink:#fff;}  /* Missed opportunities: slate, so it reads as ideas and not fixes */
   .sec-list.bullets{list-style:disc;}
   .sec-note{padding:0 16px 12px 16px;font-size:0.78rem;color:var(--ink-muted);}
   .sec:not(.open) .sec-note{display:none;}
   .sec-band{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--band);color:var(--band-ink);cursor:pointer;}
-  .sec-name{font-family:'Roboto Condensed',var(--font-display);font-weight:400;font-size:1.5rem;line-height:1.1;}
+  .sec-name{font-family:'Lato',var(--font-display);font-weight:400;font-size:1.45rem;line-height:1.1;}
   .band-arrow{margin-left:auto;flex:none;width:36px;height:36px;border-radius:50%;background:#fff;border:1.5px solid #102334;display:inline-flex;align-items:center;justify-content:center;transition:transform .15s ease;}
   .band-arrow::before{content:"";width:9px;height:9px;border-right:3px solid #102334;border-bottom:3px solid #102334;transform:translateY(-2px) rotate(45deg);}
   .sec:not(.open) .band-arrow{transform:rotate(-90deg);}
@@ -134,7 +129,7 @@
   .sec-list li{padding:1px 0;}
   .sec-list .row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;}
   .sec-list .pg{flex:none;font-size:0.8rem;font-weight:500;color:var(--ink-muted);white-space:nowrap;}
-  .top-say{background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:16px 18px;margin-bottom:14px;font-size:1.12rem;line-height:1.3;color:var(--ink);}
+  .top-say{margin-top:12px;font-family:'Lato',var(--font-body);font-size:1.2rem;line-height:1.35;color:var(--ink);}
   .top-say:empty{display:none;}
   .sec:not(.open) .sec-list{display:none;}
 
@@ -160,9 +155,10 @@
   @media screen{
     .attention{padding-bottom:20px;}
     .attention + .disclaimer{margin:-2px 0 -80px;padding:2px 0 44px;border-top:none;background:#f87700;box-shadow:0 0 0 100vmax #f87700;clip-path:inset(0 -100vmax);}
-    .attention + .disclaimer p{width:100%;max-width:760px;margin:0 auto;color:#102334;font-weight:600;}
+    .attention + .disclaimer p{width:100%;max-width:760px;margin:0 auto;color:#102334;font-weight:400;}
   }
   .disclaimer p{margin:0;font-size:0.76rem;color:var(--ink-faint);line-height:1.5;}
+  .disclaimer p b{font-weight:800;color:var(--ink);}
 
   .coaching-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:26px 28px;}
   .coaching-card .to{font-family:var(--font-mono);font-size:0.76rem;color:var(--ink-faint);margin-bottom:14px;}
@@ -213,7 +209,7 @@
        doesn't fit remaining page space gets pushed whole onto a fresh page,
        leaving the rest of the prior page blank. */
     .chips, .recap-item, .sec-band, .sec-list li{ break-inside:avoid; page-break-inside:avoid; }
-    .top-say{display:none !important;}
+    .lead-card{display:none !important;}
     .sec-band{ break-after:avoid; page-break-after:avoid; }
     .results.visible{display:flex !important;flex-direction:column;}
     .results > .meta-card{order:1;}
@@ -306,25 +302,26 @@
   <div class="saved-note" id="saved-note" hidden></div>
 
   <div class="results" id="results">
+    <div class="lead-card">
+      <div class="lead-top">
+        <a class="ig-chip" href="https://www.instagram.com/inspectagram/" target="_blank" rel="noopener" aria-label="Inspectagram on Instagram" title="Inspectagram on Instagram">
+          <img src="/static/lucas.png" width="58" height="58" alt="">
+        </a>
+        <div><div class="lead-name">Kirschenbürg</div><div class="lead-handle">@inspectagram.io</div></div>
+      </div>
+      <div class="top-say" id="top-say"></div>
+    </div>
+
     <div class="meta-card">
       <div class="meta-top">
         <div>
           <div class="meta-address" id="meta-address"></div>
-          <div class="meta-sub"><span>Client: <b id="meta-client"></b></span></div>
+          <div class="meta-sub" id="meta-sub">Correct almost <b>EVERYTHING</b> directly from the Summary.</div>
         </div>
-        <a class="ig-chip" href="https://www.instagram.com/inspectagram/" target="_blank" rel="noopener" aria-label="Inspectagram on Instagram" title="Inspectagram on Instagram">
-          <img src="/static/lucas.png" width="64" height="64" alt="">
-          <span class="ig-badge"><svg viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="igg" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#FEDA75"/><stop offset=".35" stop-color="#FA7E1E"/><stop offset=".62" stop-color="#D62976"/><stop offset="1" stop-color="#4F5BD5"/></linearGradient></defs><rect x="2.6" y="2.6" width="18.8" height="18.8" rx="5.5" fill="none" stroke="url(#igg)" stroke-width="2.2"/><circle cx="12" cy="12" r="4.3" fill="none" stroke="url(#igg)" stroke-width="2.2"/><circle cx="17.5" cy="6.5" r="1.3" fill="url(#igg)"/></svg></span>
-        </a>
       </div>
       <div class="meta-assessment" id="meta-assessment"></div>
-      <div class="chips" id="chips">
-        <button type="button" class="chip" data-sev="medium" aria-pressed="false"><span class="l">Attention</span><span class="n" id="count-medium"></span></button>
-        <button type="button" class="chip" data-sev="high" aria-pressed="false"><span class="l">Immediate attention</span><span class="n" id="count-high"></span></button>
-      </div>
+      <div class="chips" id="chips"><span class="chip">Fix it!</span></div>
     </div>
-
-    <div class="top-say" id="top-say"></div>
 
     <div class="inspector-only">
       <div class="section-label">The Talk</div>
@@ -339,7 +336,7 @@
 
     <div class="attention"><img src="/static/attention.jpg" width="1100" height="1392" loading="lazy" decoding="async" alt="Attention: the art of exceptional reports. BASEline: every icon needs a focused, clean photo. BlackBOX: your chapter photo should prove operation. Insurance: every question needs an answer, and always document limitations."></div>
     <div class="disclaimer">
-      <p>Nani promotes clean, professional inspection reports and best practices. It checks for completeness and consistency — it does not review for professional judgment calls or speculative assessments.</p>
+      <p><b>DISCLAIMER:</b> Nani promotes clean, professional inspection reports and best practices. It checks for completeness and consistency — it does not review for professional judgment calls or speculative assessments.</p>
     </div>
   </div>
 </div>
@@ -442,8 +439,10 @@ const AREA_LABEL = {
   opportunities:'Missed opportunities'
 };
 const OPP_NOTE = 'Ideas, not mistakes. Nothing here needs fixing.';
-// Two levels on the page: 'high' shows as Immediate attention (red), everything else as Attention (yellow).
-function level(f){ return f.severity === 'high' ? 'high' : 'medium'; }
+// One level on the page: every finding is red ("Fix it!"). The Attention / Immediate split is gone.
+function level(f){ return 'high'; }
+// Street only: "2669 Summerfield Way, Louisville, KY 40220" shows as "2669 Summerfield Way".
+function streetOf(addr){ return String(addr || '').split(',')[0].trim(); }
 
 function esc(s){
   return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;'}[c]));
@@ -501,21 +500,21 @@ function putWordmark(ctx, x, base, size, color){
 // One tall picture with every section open. Run once with draw=false to measure, then again to paint.
 function paintPicture(ctx, draw){
   const W = 1080, M = 44, IN = W - 2 * M, LH = 42, PAD = 24, BAND = 78;
-  const F = {title: 'bold 64px Figtree, Arial, sans-serif', addr: '500 32px Inter, Arial, sans-serif', small: '24px Inter, Arial, sans-serif',
-             head: '46px "Roboto Condensed", "Arial Narrow", sans-serif', body: '30px Inter, Arial, sans-serif', pg: '500 24px Inter, Arial, sans-serif'};
+  const F = {title: 'bold 64px Figtree, Arial, sans-serif', addr: '900 40px Lato, Arial, sans-serif', small: '24px Inter, Arial, sans-serif',
+             head: '400 46px Lato, Arial, sans-serif', body: '30px Inter, Arial, sans-serif', pg: '500 24px Inter, Arial, sans-serif'};
   let y = M;
   const put = (t, x, yy, font, color, align) => { if(draw){ ctx.font = font; ctx.fillStyle = color; ctx.textAlign = align || 'left'; ctx.fillText(t, x, yy); } };
   const box = (x, yy, w, h, r, fill) => { if(draw){ boxPath(ctx, x, yy, w, h, r); ctx.fillStyle = fill; ctx.fill(); } };
   if(draw) putWordmark(ctx, M, y + 54, 64, '#16233D');
   y += 84;
   ctx.font = F.addr;
-  wrapText(ctx, LAST.address, IN).forEach(t => { put(t, M, y + 30, F.addr, '#16233D'); y += 42; });
+  wrapText(ctx, streetOf(LAST.address), IN).forEach(t => { put(t, M, y + 30, F.addr, '#16233D'); y += 42; });
   put(new Date().toLocaleDateString(undefined, {year:'numeric', month:'long', day:'numeric'}), M, y + 24, F.small, '#51647F'); y += 52;
   if(LAST.comment){
-    ctx.font = F.addr;
+    ctx.font = '30px Lato, Arial, sans-serif';
     const rows = wrapText(ctx, LAST.comment, IN - 2 * PAD), h = rows.length * 42 + 2 * PAD - 6;
     box(M, y, IN, h, 14, '#FFFFFF');
-    rows.forEach((t, i) => put(t, M + PAD, y + PAD + 30 + i * 42, F.addr, '#16233D'));
+    rows.forEach((t, i) => put(t, M + PAD, y + PAD + 30 + i * 42, '30px Lato, Arial, sans-serif', '#16233D'));
     y += h + 24;
   }
   LAST.flagged.forEach(sec => {
@@ -525,10 +524,9 @@ function paintPicture(ctx, draw){
     const listH = blocks.reduce((n, b) => n + b.rows.length * LH + 8, 0);
     const noteH = opp ? 40 : 0;
     const h = BAND + PAD + listH + PAD - 8 + noteH;
-    const red = sec.worst === 'high';
     box(M, y, IN, h, 16, '#FFFFFF');
-    if(draw){ boxPath(ctx, M, y, IN, BAND, [16, 16, 0, 0]); ctx.fillStyle = red ? '#E85140' : opp ? '#F87700' : '#FCCC2A'; ctx.fill(); }
-    put(AREA_LABEL[sec.area] || sec.area, M + PAD, y + 55, F.head, red ? '#FFFFFF' : '#16233D');
+    if(draw){ boxPath(ctx, M, y, IN, BAND, [16, 16, 0, 0]); ctx.fillStyle = opp ? '#43566A' : '#FF003C'; ctx.fill(); }
+    put(AREA_LABEL[sec.area] || sec.area, M + PAD, y + 55, F.head, '#FFFFFF');
     let ly = y + BAND + PAD;
     blocks.forEach(b => {
       b.rows.forEach((t, i) => put(t, M + PAD, ly + 30 + i * LH, F.body, '#16233D'));
@@ -546,7 +544,7 @@ function drawPicture(){
   const c = document.createElement('canvas');
   c.width = 1080; c.height = Math.ceil(H);
   const ctx = c.getContext('2d');
-  ctx.fillStyle = '#F5F7F8'; ctx.fillRect(0, 0, c.width, c.height);
+  ctx.fillStyle = '#EAEAEA'; ctx.fillRect(0, 0, c.width, c.height);
   paintPicture(ctx, true);
   return c;
 }
@@ -555,7 +553,7 @@ async function savePicture(){
   const btn = document.getElementById('pic-btn'), label = btn.textContent;
   btn.disabled = true; btn.textContent = 'Taking snapshot...';
   try{
-    try{ await Promise.all(['46px "Roboto Condensed"', '30px Inter', '800 64px Montserrat'].map(f => document.fonts.load(f))); }catch(e){}
+    try{ await Promise.all(['400 46px Lato', '900 40px Lato', '30px Lato', '30px Inter', '800 64px Montserrat'].map(f => document.fonts.load(f))); }catch(e){}
     const blob = await new Promise(res => drawPicture().toBlob(res, 'image/png'));
     const name = 'nani-' + ((LAST.address || 'report').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'report') + '.png';
     const file = new File([blob], name, {type: 'image/png'});
@@ -575,10 +573,9 @@ async function savePicture(){
 }
 
 function render(data){
-  document.getElementById('meta-address').textContent = data.property_address || 'Address not found';
+  document.getElementById('meta-address').textContent = streetOf(data.property_address) || 'Address not found';
   document.getElementById('pb-address').textContent = data.property_address || '';
   document.getElementById('pb-date').textContent = new Date().toLocaleDateString(undefined, {year:'numeric', month:'long', day:'numeric'});
-  document.getElementById('meta-client').textContent = data.client_name || 'not found';
   document.getElementById('meta-assessment').textContent = data.overall_assessment || '';
 
   const findings = data.findings || [];
@@ -598,13 +595,11 @@ function render(data){
   });
   const flagged = sectionsData.filter(s => s.worst).sort((a, b) => (b.worst === 'high') - (a.worst === 'high'));
 
-  const allLines = flagged.flatMap(s => s.lines);
-  document.getElementById('count-high').textContent = allLines.filter(l => l.sev === 'high').length;
-  document.getElementById('count-medium').textContent = allLines.filter(l => l.sev !== 'high').length;
-
-  document.getElementById('top-say').textContent = data.report_comment || '';
-  // Missed opportunities come last, in their own orange section: ideas, not mistakes, so they are never
-  // counted and the red / yellow buttons hide them.
+  // "Fix it!" and its line only make sense when something was found
+  document.getElementById('chips').style.display = flagged.length ? '' : 'none';
+  document.getElementById('meta-sub').style.display = flagged.length ? '' : 'none';
+  document.getElementById('top-say').textContent = data.report_comment ? '"' + data.report_comment + '"' : '';
+  // Missed opportunities come last, in their own slate section: ideas, not mistakes, so they are never counted.
   const oppLines = (data.opportunities || []).map(o => ({text: o.item, anchor: o.anchor, page: o.page, sev: 'opp'}));
   const shown = oppLines.length ? flagged.concat([{area: 'opportunities', lines: oppLines, worst: 'opp'}]) : flagged;
   LAST = {address: data.property_address || '', flagged: shown, comment: data.report_comment || ''};
@@ -630,30 +625,6 @@ function render(data){
     band.addEventListener('keydown', e => { if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); toggle(); } });
     sectionsEl.appendChild(sec);
   });
-
-  // Each button shows only its own color; pressing it again shows everything.
-  const chips = [...document.querySelectorAll('.chip')];
-  const applyFilter = sev => {
-    chips.forEach(c => {
-      c.classList.toggle('active', c.dataset.sev === sev);
-      c.classList.toggle('dim', !!sev && c.dataset.sev !== sev);
-      c.setAttribute('aria-pressed', c.dataset.sev === sev);
-    });
-    sectionsEl.querySelectorAll('.sec').forEach(sec => {
-      if(sec.dataset.worst === 'opp'){ sec.style.display = sev ? 'none' : ''; return; }  // only the all-colours view shows it
-      let shown = 0;
-      sec.querySelectorAll('.sec-list li').forEach(li => {
-        const on = !sev || li.dataset.sev === sev;
-        li.style.display = on ? '' : 'none';
-        if(on) shown++;
-      });
-      sec.style.display = shown ? '' : 'none';
-      sec.classList.remove('band-high', 'band-medium');
-      sec.classList.add('band-' + (sev || sec.dataset.worst));
-    });
-  };
-  chips.forEach(chip => { chip.onclick = () => applyFilter(chip.classList.contains('active') ? null : chip.dataset.sev); });
-  applyFilter(null);  // a fresh set of results always starts unfiltered
 
   document.getElementById('coach-text').textContent = data.coaching_summary || '';
   const recap = document.getElementById('coach-recap');
