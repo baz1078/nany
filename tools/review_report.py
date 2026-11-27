@@ -291,7 +291,7 @@ def apply_voice(result, client=None, insurance_blanks=None):
                             for i, f in enumerate(items)]}
     for entry, f in zip(payload["findings"], items):
         if f is listed:  # its lines come from the code scan below; the voice model only needs the gist
-            entry["issue"] = f"{len(names)} fields in The Insurance section are blank or say only 'n/a'."
+            entry["issue"] = f"{len(names)} fields in The Insurance section are blank."
         if entry["tag"] == "Placeholder text":  # the inspector should hear what is missing, not what was left there
             entry["tag"] = "Not filled in"
             for k in ("issue", "why", "fix"):
@@ -447,7 +447,7 @@ def _find_insurance_blanks_raw(text):
         nxt = seq[i + 1] if i + 1 < len(seq) else ""
         is_heading = bool(re.search(r"(Overview|System|Systems)$", l)) or l == "Kitchen & Bathroom"
         if nxt.lower() == "n/a":
-            blanks.append(f"{l} (bare 'n/a')")
+            continue  # N/A is an answer (owner, 2026-11-26)
         elif not nxt.startswith(("◻", "⚠")) and not is_heading:
             blanks.append(l)
     return blanks
@@ -585,7 +585,7 @@ _CHAPTER_NAMES = {"roof": "Roof", "exterior": "Exterior", "attic": "Attic", "int
                   "kitchen": "Kitchen", "laundromat": "Laundry", "laundry": "Laundry", "bathroom": "Bathroom",
                   "mechanical": "Mechanical", "garage": "Garage"}
 _LOC_RE = re.compile(r"\bL:\s*(?!Click Here)\S")
-_EVERYWHERE_RE = re.compile(r"\b(?:throughout|multiple|various|several)\b", re.IGNORECASE)
+_EVERYWHERE_RE = re.compile(r"\b(?:throughout|multiple|various|several|general|areas)\b", re.IGNORECASE)  # + general/areas (owner, 2026-11-26)
 
 
 def _chapter_of(line):
@@ -615,7 +615,7 @@ def find_missing_locations(text):
             j += 1
         text_of_entry = " ".join(body)
         # "throughout the property", "multiple areas": no single place to point to, so no location is needed
-        if (chapter in ("Interior", "Exterior") and not _LOC_RE.search(text_of_entry)
+        if (chapter in ("Interior", "Exterior", "Bathroom") and not _LOC_RE.search(text_of_entry)
                 and not _EVERYWHERE_RE.search(text_of_entry)):
             name = re.split(r"\s*:", name_line, maxsplit=1)[0].replace("⠀", "").strip()
             anchor = _first_anchor(lines[j]) if j < len(lines) and _anchor_or_media(lines[j]) else None
@@ -633,8 +633,8 @@ def find_missing_locations(text):
     return out
 
 
-_PAGE_CHECKS = [("The Elements", r"element"), ("The Method", r"method"), ("Disclaimer", r"disclaimer"),
-                ("Icons and Legends", r"legend"), ("Contract", r"agreement|contract")]
+# Method and Icons & Legends moved to Missed opportunities (owner, 2026-11-26); see find_missed_opportunities.
+_PAGE_CHECKS = [("The Elements", r"element"), ("Disclaimer", r"disclaimer"), ("Contract", r"agreement|contract")]
 _WEATHER_RE = re.compile(r"\b(?:sunny|cloud\w*|overcast|rain\w*|shower\w*|snow\w*|sleet|fog\w*|mist\w*|wind\w*|storm\w*"
                          r"|thunder\w*|clear|hail|drizzle|haze)\b", re.IGNORECASE)
 _TEMP_RE = re.compile(r"[-+]?\d{1,3}\s*(?:[°º]\s*[CcFf]?|[CcFf]\b)")
@@ -704,11 +704,69 @@ def _blackbox_placeholders(text):
     return [x for x in out if x]
 
 
+def find_icon_note_findings(text):
+    """Icon vs note, owner's final rule (2026-11-26): only an Immediate attention icon with a note that says
+    Observation is a mismatch. Observation on an Attention icon, and Attention vs Immediate either way, are fine.
+    Built in code so it reads the same on every run."""
+    hits = [m for m in find_icon_note_mismatches(text) if _level(m["icon"]) == 3 and _level(m["note"]) == 1]
+    lines = [_line(m["name"], "Icon says Immediate attention, note says Observation", m.get("anchor")) for m in hits]
+    lines = [l for l in lines if l]
+    if not lines:
+        return []
+    return [_code_finding("summary", "Mismatch", "medium", "The Summary — icon and note",
+                          "Icon says Immediate attention, note says Observation: " + ", ".join(l["item"] for l in lines) + ".",
+                          None, "The client reads the icon first.", "Make the icon and the note agree.", lines=lines)]
+
+
+def _icon_note_dupe(item):
+    """The review model's own icon-vs-note finding. Code reports the one case that counts (find_icon_note_findings)."""
+    issue = (item.get("issue") or "").lower()
+    return (item.get("source") != "code" and item.get("tag") == "Mismatch" and item.get("area") == "summary"
+            and "icon" in issue and "note" in issue)
+
+
+_BB_HEAD_RE = re.compile(r"^(?:⚠️?\s*)?([A-Za-z][A-Za-z /&]{1,30}?)\s+General (?:Notes|Obs\w*)\s*(?:\((\d+)\))?\s*:?$", re.IGNORECASE)
+
+
+def _blackbox_summary_gaps(text):
+    """A chapter whose Blackbox ("<Chapter> General Notes (8)") has entries needs ONE line for it in the Summary
+    (a '[attention icon]' then the same heading), not one per item (owner, 2026-11-26). Only judged when the
+    Summary has Blackbox lines at all (otherwise this report's Summary is written another way and the check
+    stays silent rather than guess). Returns one line per chapter that has entries in the body and none there."""
+    lines = _clean_lines(text)
+    summary, body = set(), []
+    for i, l in enumerate(lines):
+        m = _BB_HEAD_RE.match(l)
+        if not m or "Click" in l:
+            continue
+        key = _squash(m.group(1))
+        prev = lines[i - 1] if i else ""
+        if _ATTENTION_ICON_RE.fullmatch(prev) or _SEV_ICON_RE.fullmatch(prev):
+            summary.add(key)
+            continue
+        count = int(m.group(2)) if m.group(2) else None
+        if count is None:
+            nxt = next((x for x in lines[i + 1:i + 4] if x.strip(_BLANKS)), "")
+            count = 1 if re.match(r"1\.\s", nxt) else 0
+        if count > 0:
+            anchor = next((_first_anchor(x) for x in reversed(lines[max(0, i - 3):i]) if _anchor_or_media(x)), None)
+            body.append((m.group(1).strip(), key, anchor))
+    if not summary:
+        return []
+    seen, out = set(), []
+    for name, key, anchor in body:
+        if key not in summary and key not in seen:
+            seen.add(key)
+            out.append(_line(f"{name} Blackbox", "Missing from Summary", anchor))
+    return [x for x in out if x]
+
+
 def find_missing_pages(text):
     """What every report should carry (owner, 2026-11-18): the standard pages, a contract that is not the
     sample one, and a temperature on the Elements page. Pages are read from the report's menu; if it does not
     look like the usual one the page check stays silent rather than guess. Kept apart from
-    find_code_findings so the review's own input is not changed."""
+    find_code_findings so the review's own input is not changed. Also the Blackbox corrections (owner,
+    2026-11-26): a Blackbox photo still on the stock placeholder, and a chapter whose Blackbox is not in the Summary."""
     lines = []
     labels = _menu_labels(text)
     if "The Cover" in labels and len(labels) >= 6:
@@ -721,6 +779,7 @@ def find_missing_pages(text):
     sample = _sample_contract_anchor(text)
     if sample:
         lines.append(_line("Contract", "Sample contract still in the report", sample))
+    lines += _blackbox_placeholders(text) + _blackbox_summary_gaps(text)
     lines = [l for l in lines if l]
     if not lines:
         return []
@@ -752,9 +811,12 @@ def find_missed_opportunities(text):
             out.append({"item": "Conduct page"})
         if not any(re.search(r"72\s*seconds", l, re.IGNORECASE) for l in labels):
             out.append({"item": "72 Seconds"})
-    for l in _blackbox_placeholders(text):  # a chapter whose Blackbox photo is still the stock placeholder
-        out.append({"item": l["item"], **({"anchor": l["anchor"]} if l.get("anchor") else {})})
-    return out
+        # Method and Icons & Legends pages: ideas now, not corrections (owner, 2026-11-26)
+        if not any(re.search(r"method", l, re.IGNORECASE) for l in labels):
+            out.append({"item": "Method page"})
+        if not any(re.search(r"legend", l, re.IGNORECASE) for l in labels):
+            out.append({"item": "Icons & Legends"})
+    return out  # a stock Blackbox photo is a correction now (find_missing_pages), no longer an idea
 
 
 def find_code_findings(text):
@@ -852,7 +914,9 @@ def _insurance_not_blank(item, blank_labels):
     if item.get("area") != "insurance" or item.get("tag") == "Placeholder text":
         return False
     issue = (item.get("issue") or "").lower()
-    return not (any(lbl and lbl in issue for lbl in blank_labels) or _BLANK_WORDS_RE.search(issue))
+    # "bare n/a" is no longer a reason to flag a field (owner, 2026-11-26): only real blanks keep the finding
+    issue_blanks = re.sub(r"\bbare\b|['\"]?\bn/a\b['\"]?", "", issue)
+    return not (any(lbl and lbl in issue for lbl in blank_labels) or _BLANK_WORDS_RE.search(issue_blanks))
 
 
 def _two_cover_dates(item):
@@ -1021,14 +1085,14 @@ def review_report(url):
     if result is None:
         raise ReplyUnreadable(why)
     result.setdefault("also_noticed", [])
-    # Exterior entries no longer need a location (owner, 2026-11-13). The finding is still built above so
-    # the review's input stays exactly as it was; it is only left out of the result.
-    shown_code = [c for c in code_items if not (c["tag"] == "Missing location" and c["area"] == "exterior")]
+    # Exterior locations are back (owner, 2026-11-26; they were left out from 2026-11-13).
+    shown_code = list(code_items)
     # A chapter's "Additional Observations" has its text in the report body; its Summary entry is just a
     # link and always reads empty, so "Nothing written" there is a false alarm (owner, 2026-11-19).
     shown_code = [c for c in shown_code if not c["section"].startswith("The Summary — Additional Observations")]
-    extra = find_missing_pages(text)
+    extra = find_missing_pages(text) + find_icon_note_findings(text)
     kept = _drop_out_of_scope(_drop_code_duplicates(result.get("findings", []), code_items), text, blanks)
+    kept = [f for f in kept if not _icon_note_dupe(f)]
     if any("Sample contract" in l["what"] for f in extra for l in f["lines"]):
         kept = [f for f in kept if not _sample_contract_dupe(f)]  # code reports it already
     result["findings"] = kept + shown_code + extra

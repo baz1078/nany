@@ -73,6 +73,16 @@ reports.
   company/account on Inspectagram; verify if a report from another company 403s.
 
 ## Self-Improvement Log
+- 2026-11-27: Round 1 of the owner's "Report Corrections" list, all in code, prompt untouched. Icon vs note:
+  flag ONLY an Immediate icon with an Observation note (`find_icon_note_findings`); the model's own icon/note
+  findings are dropped (`_icon_note_dupe`). Insurance: a bare n/a is an answer (blanks and #### still count).
+  Blackbox is back in corrections: a stock-placeholder Blackbox photo = "Missing photo", and a chapter whose
+  Blackbox has entries needs ONE Summary line ("Roof Blackbox"; `_blackbox_summary_gaps`, silent when the Summary
+  has no Blackbox lines at all). Missing locations apply to Interior, Bathroom AND Exterior again (only entries
+  with an Attention/Immediate icon); "general/various/throughout/areas" entries are exempt. Method and Icons &
+  Legends moved to Missed opportunities. Known: Lucas's own report (R11) now shows "Roof Blackbox: Missing from
+  Summary" (his Roof Blackbox is not in his Summary); kept on purpose. Not built: "every photo needs a title"
+  (the scraper flattens table rows, so photos and titles cannot be paired).
 - 2026-11-24: Owner's round after Lucas's own report (9c7b4fdf) came back with 19 flags, 13 of them false.
   (1) "Missing observation note" on photo-and-name tiles (thermal tiles, appliance row) and on a "Not Inspected"
   item with a reason: those rows use another invisible blank (U+200E) than the one the Nov 19 rule knew.
