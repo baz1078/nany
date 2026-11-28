@@ -138,10 +138,6 @@
   .hero .hot-bubble{position:absolute;left:calc(min(100%,420px) * 0.475);top:calc(min(100vw,420px) * 0.052);width:calc(min(100%,420px) * 0.52);height:calc(min(100vw,420px) * 0.385);border-radius:22px;}
   .hero .hot-bubble:hover{outline:2px solid var(--accent);}
   body.has-run .hero, body.has-run .consent, body.has-run .start-note{display:none;}
-  /* the closing reminder sits on a full-width orange panel; the fine print follows it
-     (the shadow paints the color out to both screen edges without causing sideways scroll) */
-  .attention{margin:34px 0 0;padding:26px 0 34px;background:#f87700;box-shadow:0 0 0 100vmax #f87700;clip-path:inset(0 -100vmax);}
-  .attention img{display:block;width:100%;max-width:760px;margin:0 auto;height:auto;border-radius:18px;}
   .start-note{margin:12px 4px 0;font-size:0.84rem;color:var(--ink-muted);line-height:1.45;}
   .start-note + .consent{margin-top:6px;}
   .consent{margin:8px 4px 0;font-size:0.74rem;color:var(--ink-faint);line-height:1.4;}
@@ -151,13 +147,8 @@
     .hero .hot-bubble{left:47.5%;top:5.2%;width:52%;height:38.5%;}
   }
 
-  .disclaimer{margin-top:18px;padding-top:14px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:6px;}
-  @media screen{
-    .attention{padding-bottom:20px;}
-    .attention + .disclaimer{margin:-2px 0 -80px;padding:2px 0 44px;border-top:none;background:#f87700;box-shadow:0 0 0 100vmax #f87700;clip-path:inset(0 -100vmax);}
-    .attention + .disclaimer p{width:100%;max-width:760px;margin:0 auto;color:#102334;font-weight:400;}
-  }
-  .disclaimer p{margin:0;font-size:0.76rem;color:var(--ink-faint);line-height:1.5;}
+  .disclaimer{margin-top:22px;display:flex;flex-direction:column;gap:6px;}
+  .disclaimer p{margin:0;font-size:0.8rem;color:var(--ink);line-height:1.5;}
   .disclaimer p b{font-weight:800;color:var(--ink);}
 
   .coaching-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:26px 28px;}
@@ -334,7 +325,6 @@
 
     <div class="sections" id="sections"></div>
 
-    <div class="attention"><img src="/static/attention.jpg" width="1100" height="1392" loading="lazy" decoding="async" alt="Attention: the art of exceptional reports. BASEline: every icon needs a focused, clean photo. BlackBOX: your chapter photo should prove operation. Insurance: every question needs an answer, and always document limitations."></div>
     <div class="disclaimer">
       <p><b>DISCLAIMER:</b> Nani promotes clean, professional inspection reports and best practices. It checks for completeness and consistency — it does not review for professional judgment calls or speculative assessments.</p>
     </div>

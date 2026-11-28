@@ -73,6 +73,7 @@ reports.
   company/account on Inspectagram; verify if a report from another company 403s.
 
 ## Self-Improvement Log
+- 2026-11-27: Removed the orange Attention poster from the bottom of the page (the image file stays in static/, unused). The disclaimer now sits on the gray background as the last thing on the page, same text, bold "DISCLAIMER:". The poster can come back when the owner sends good/bad example photos and demo report links.
 - 2026-11-27: New look (page only, backend untouched). Every finding is red (#FF003C, Inspectagram's brand red);
   the Attention / Immediate split and its count buttons are gone (`level()` always returns 'high'). A red "Fix it!"
   label (not a button) sits in the address card, which shows the street only (`streetOf`) plus "Correct almost
